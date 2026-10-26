@@ -322,3 +322,42 @@ language sql stable security definer set search_path = public as $$
                       o.end_time + make_interval(hours => s.h)))
   order by (s.h <> 0), abs(s.h), r.capacity, r.name;
 $$;
+-- ===== 9. Real UGA libraries and group study rooms =====
+-- Replaces the sample data above. WARNING: wipes all bookings, notifications and sensor readings.
+-- Source: libraries.uga.edu/study-spaces and the Group Study Rooms Policy (Oct 2026).
+-- UGA does not publish most room numbers, so rooms are numbered here; capacity is 4 unless stated.
+truncate locations, rooms, bookings, notifications, sensor_readings restart identity cascade;
+
+insert into locations (name) values
+  ('Main Library'),
+  ('McBay Science Library'),
+  ('Miller Learning Center'),
+  ('Art Library'),
+  ('Carnegie Library Learning Center (Health Sciences Campus)');
+
+-- numbered group study rooms: (library, how many, capacity)
+insert into rooms (location_id, name, capacity, room_type)
+select l.id, 'Group Study Room ' || lpad(n::text, 2, '0'), v.capacity, 'study'
+from (values
+  ('Main Library', 26, 4),
+  ('McBay Science Library', 25, 4),
+  ('Miller Learning Center', 95, 4),
+  ('Art Library', 1, 4),
+  ('Carnegie Library Learning Center (Health Sciences Campus)', 2, 4)
+) as v(library, how_many, capacity)
+join locations l on l.name = v.library
+cross join lateral generate_series(1, v.how_many) as n;
+
+-- rooms UGA names individually
+insert into rooms (location_id, name, capacity, room_type)
+select l.id, v.room, v.capacity, 'study'
+from (values
+  ('Main Library', 'Group Study Room 134A (accessibility priority)', 4),
+  ('Main Library', 'Group Study Room 163A (accessibility priority)', 4),
+  ('Main Library', 'Barr Seminar Room', 12),
+  ('McBay Science Library', 'Room 402', 8)
+) as v(library, room, capacity)
+join locations l on l.name = v.library;
+
+-- study rooms holding 8 or fewer people are students-only (same rule as section 4)
+update rooms set students_only = (room_type = 'study' and capacity <= 8);
