@@ -423,3 +423,235 @@ $$;
 -- schedule the no-show check every minute
 create extension if not exists pg_cron with schema pg_catalog;
 select cron.schedule('release-no-shows', '* * * * *', 'select release_no_shows()');
+
+-- ===== 11. Edge cases, booking rules, reminder and released emails =====
+-- Rules: start/end on 15-minute steps, at most 2 hours, up to 14 days ahead,
+-- one active booking per email per day (Athens time). Emails are stored trimmed and lowercase.
+-- The current 15-minute slot can still be booked, so the 15-minute check-in window starts at
+-- whichever is later: the start time or when the booking was made.
+alter table bookings add column if not exists created_at timestamptz not null default now();
+
+create or replace function get_available_rooms(
+  p_location_id bigint, p_start timestamptz, p_end timestamptz,
+  p_group_size int, p_booking_type text default 'student')
+returns table (id bigint, location_id bigint, name text, capacity int,
+               room_type text, would_bump boolean)
+language plpgsql stable security definer set search_path = public as $$
+#variable_conflict use_column
+begin
+  if p_booking_type is null or p_booking_type not in ('student','club','professional_club') then
+    raise exception 'Booking type must be student, club or professional_club'; end if;
+  if p_start is null or p_end is null or p_end <= p_start then
+    raise exception 'End time must be after start time'; end if;
+  if p_start < now() - interval '15 minutes' then raise exception 'Start time is in the past'; end if;
+  if p_start > now() + interval '14 days' then
+    raise exception 'Rooms can be booked up to 14 days ahead'; end if;
+
+  return query
+  select r.id, r.location_id, r.name, r.capacity, r.room_type,
+    exists (select 1 from bookings b
+            where b.room_id = r.id and b.status = 'active'
+              and tstzrange(b.start_time, b.end_time) && tstzrange(p_start, p_end))
+  from rooms r
+  where r.location_id = p_location_id
+    and r.capacity >= p_group_size
+    and (case when p_booking_type = 'student'
+              then r.room_type = 'study'
+              else not r.students_only end)
+    and not exists (
+      select 1 from bookings b
+      where b.room_id = r.id and b.status = 'active'
+        and tstzrange(b.start_time, b.end_time) && tstzrange(p_start, p_end)
+        and (b.priority >= booking_priority(p_booking_type) or b.start_time <= now()))
+  order by r.capacity, r.name;
+end; $$;
+
+create or replace function create_booking(
+  p_room_id bigint, p_start timestamptz, p_end timestamptz, p_group_size int,
+  p_name text, p_email text, p_org_id bigint default null, p_org_code text default null)
+returns text
+language plpgsql security definer set search_path = public as $$
+declare
+  v_room rooms%rowtype;
+  v_org organizations%rowtype;
+  v_type text := 'student';
+  v_priority int;
+  v_name text := trim(coalesce(p_name, ''));
+  v_email text := lower(trim(coalesce(p_email, '')));
+  v_code text;
+begin
+  select * into v_room from rooms where id = p_room_id;
+  if not found then raise exception 'Room not found'; end if;
+  if v_name = '' then raise exception 'Please enter your name'; end if;
+  if v_email !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' then
+    raise exception 'Please enter a valid email'; end if;
+  if p_group_size is null or p_group_size < 1 then
+    raise exception 'Group size must be at least 1'; end if;
+  if p_start is null or p_end is null or p_end <= p_start then
+    raise exception 'End time must be after start time'; end if;
+  if p_start <> date_trunc('minute', p_start) or extract(minute from p_start)::int % 15 <> 0
+     or p_end <> date_trunc('minute', p_end) or extract(minute from p_end)::int % 15 <> 0 then
+    raise exception 'Times must be on the hour or at :15, :30 or :45'; end if;
+  if p_start < now() - interval '15 minutes' then raise exception 'Start time is in the past'; end if;
+  if p_start > now() + interval '14 days' then
+    raise exception 'Rooms can be booked up to 14 days ahead'; end if;
+  if p_group_size > v_room.capacity then
+    raise exception 'Group is larger than room capacity (%)', v_room.capacity; end if;
+  if p_end - p_start > interval '2 hours' then
+    raise exception 'Bookings are limited to 2 hours'; end if;
+
+  if p_org_id is not null then
+    select * into v_org from organizations where id = p_org_id;
+    if not found or v_org.access_code <> coalesce(p_org_code, '') then
+      raise exception 'Invalid organization or access code'; end if;
+    v_type := v_org.org_type;
+    if v_room.students_only then
+      raise exception 'This room is reserved for students'; end if;
+  else
+    if v_room.room_type <> 'study' then
+      raise exception 'Students can only book study rooms'; end if;
+  end if;
+
+  -- one active booking per email per day; the lock stops two tabs booking at the same moment
+  perform pg_advisory_xact_lock(hashtext(v_email));
+  if exists (select 1 from bookings b
+             where b.booker_email = v_email and b.status = 'active'
+               and (b.start_time at time zone 'America/New_York')::date
+                 = (p_start at time zone 'America/New_York')::date) then
+    raise exception 'You already have a booking that day. Cancel it first to book a different room.';
+  end if;
+
+  v_priority := booking_priority(v_type);
+
+  -- blocked by an equal/higher priority booking, or one that already started
+  if exists (select 1 from bookings b
+             where b.room_id = p_room_id and b.status = 'active'
+               and tstzrange(b.start_time, b.end_time) && tstzrange(p_start, p_end)
+               and (b.priority >= v_priority or b.start_time <= now())) then
+    raise exception 'That room is already booked for that time'; end if;
+
+  -- bump any lower-priority bookings in the way
+  update bookings set status = 'bumped'
+  where room_id = p_room_id and status = 'active'
+    and tstzrange(start_time, end_time) && tstzrange(p_start, p_end);
+
+  -- retry in the rare case the random booking code is already taken
+  loop
+    begin
+      insert into bookings (room_id, start_time, end_time, group_size, booker_name,
+                            booker_email, booking_type, priority, org_id, organization_name,
+                            booking_code)
+      values (p_room_id, p_start, p_end, p_group_size, v_name, v_email,
+              v_type, v_priority, v_org.id, v_org.name, substr(md5(random()::text), 1, 6))
+      returning booking_code into v_code;
+      exit;
+    exception when unique_violation then
+      -- code collision: loop and try a new one
+    end;
+  end loop;
+  return v_code;
+exception when exclusion_violation then
+  raise exception 'That room is already booked for that time';
+end; $$;
+
+create or replace function check_in(p_code text, p_email text)
+returns timestamptz
+language plpgsql security definer set search_path = public as $$
+declare v_booking bookings%rowtype;
+begin
+  select * into v_booking from bookings
+  where booking_code = trim(p_code) and booker_email = lower(trim(p_email));
+  if not found then raise exception 'No booking found with that code and email'; end if;
+  if v_booking.status = 'released' then
+    raise exception 'This booking was released because nobody checked in within 15 minutes'; end if;
+  if v_booking.status <> 'active' then raise exception 'This booking is %', v_booking.status; end if;
+  if v_booking.checked_in_at is not null then return v_booking.checked_in_at; end if;
+  if now() < v_booking.start_time then
+    raise exception 'Check-in opens at the start of your booking'; end if;
+  if now() > greatest(v_booking.start_time, v_booking.created_at) + interval '15 minutes' then
+    raise exception 'Check-in closed 15 minutes after the start time'; end if;
+
+  update bookings set checked_in_at = now() where id = v_booking.id
+  returning checked_in_at into v_booking.checked_in_at;
+  return v_booking.checked_in_at;
+end; $$;
+
+create or replace function release_no_shows()
+returns int
+language plpgsql security definer set search_path = public as $$
+declare v_count int;
+begin
+  update bookings set status = 'released'
+  where status = 'active'
+    and checked_in_at is null
+    and greatest(start_time, created_at) <= now() - interval '15 minutes'
+    and end_time > now();
+  get diagnostics v_count = row_count;
+  return v_count;
+end; $$;
+
+-- "please check in" email when a booking starts (sent by the send-bump-email webhook)
+create or replace function queue_checkin_reminders()
+returns int
+language plpgsql security definer set search_path = public as $$
+declare v_count int;
+begin
+  insert into notifications (booking_id, kind, to_email, subject, body)
+  select b.id, 'checkin_reminder', b.booker_email,
+    'Your study room booking has started: please check in',
+    'Hi ' || b.booker_name || ', your booking for ' || r.name || ' at ' || l.name || ' started at ' ||
+    to_char(b.start_time at time zone 'America/New_York', 'HH12:MI AM') ||
+    '. Check in within 15 minutes in the app with booking code ' || b.booking_code ||
+    ', or the room will be released for other students.'
+  from bookings b
+  join rooms r on r.id = b.room_id
+  join locations l on l.id = r.location_id
+  where b.status = 'active'
+    and b.checked_in_at is null
+    and b.start_time <= now()
+    and greatest(b.start_time, b.created_at) > now() - interval '15 minutes'
+    and not exists (select 1 from notifications n
+                    where n.booking_id = b.id and n.kind = 'checkin_reminder');
+  get diagnostics v_count = row_count;
+  return v_count;
+end; $$;
+
+-- "your booking was released" email
+create or replace function queue_release_notification()
+returns trigger
+language plpgsql security definer set search_path = public as $$
+declare v_room text;
+begin
+  select name into v_room from rooms where id = new.room_id;
+  insert into notifications (booking_id, kind, to_email, subject, body)
+  values (
+    new.id, 'released', new.booker_email,
+    'Your study room booking was released',
+    'Hi ' || new.booker_name || ', nobody checked in to your booking for ' || v_room || ' on ' ||
+    to_char(new.start_time at time zone 'America/New_York', 'Dy Mon DD, HH12:MI AM') ||
+    ' within 15 minutes, so the room was released for other students. You can book again in the app.'
+  );
+  return new;
+end; $$;
+
+drop trigger if exists release_notify on bookings;
+create trigger release_notify
+after update of status on bookings
+for each row
+when (old.status = 'active' and new.status = 'released')
+execute function queue_release_notification();
+
+-- one scheduled job runs both every minute (replaces the section 10 job)
+create or replace function run_booking_jobs()
+returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform queue_checkin_reminders();
+  perform release_no_shows();
+end; $$;
+revoke execute on function release_no_shows() from public, anon, authenticated;
+revoke execute on function queue_checkin_reminders() from public, anon, authenticated;
+revoke execute on function run_booking_jobs() from public, anon, authenticated;
+
+select cron.unschedule(jobid) from cron.job where jobname = 'release-no-shows';
+select cron.schedule('booking-jobs', '* * * * *', 'select run_booking_jobs()');
