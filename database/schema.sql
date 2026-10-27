@@ -689,3 +689,169 @@ insert into organizations (name, org_type) values
   ('UGA Motorsports', 'club'),
   ('UGAHacks', 'club')
 on conflict (name) do nothing;
+
+-- ===== 13. Club hours: clubs can book any room on weekday evenings and weekends =====
+-- Rooms marked students_only are open to clubs (including bumping students) when the booking
+-- starts at 6 PM or later on a weekday, or any time Saturday/Sunday (Athens time).
+-- Rooms with students_only = false (e.g. Barr Seminar Room) stay open to clubs at all times.
+create or replace function is_club_time(p_start timestamptz) returns boolean
+language sql stable as $$
+  select extract(isodow from p_start at time zone 'America/New_York') in (6, 7)
+      or (p_start at time zone 'America/New_York')::time >= time '18:00';
+$$;
+
+create or replace function get_available_rooms(
+  p_location_id bigint, p_start timestamptz, p_end timestamptz,
+  p_group_size int, p_booking_type text default 'student')
+returns table (id bigint, location_id bigint, name text, capacity int,
+               room_type text, would_bump boolean)
+language plpgsql stable security definer set search_path = public as $$
+#variable_conflict use_column
+begin
+  if p_booking_type is null or p_booking_type not in ('student','club','professional_club') then
+    raise exception 'Booking type must be student, club or professional_club'; end if;
+  if p_start is null or p_end is null or p_end <= p_start then
+    raise exception 'End time must be after start time'; end if;
+  if p_start < now() - interval '15 minutes' then raise exception 'Start time is in the past'; end if;
+  if p_start > now() + interval '14 days' then
+    raise exception 'Rooms can be booked up to 14 days ahead'; end if;
+
+  return query
+  select r.id, r.location_id, r.name, r.capacity, r.room_type,
+    exists (select 1 from bookings b
+            where b.room_id = r.id and b.status = 'active'
+              and tstzrange(b.start_time, b.end_time) && tstzrange(p_start, p_end))
+  from rooms r
+  where r.location_id = p_location_id
+    and r.capacity >= p_group_size
+    and (case when p_booking_type = 'student'
+              then r.room_type = 'study'
+              else (not r.students_only or is_club_time(p_start)) end)
+    and not exists (
+      select 1 from bookings b
+      where b.room_id = r.id and b.status = 'active'
+        and tstzrange(b.start_time, b.end_time) && tstzrange(p_start, p_end)
+        and (b.priority >= booking_priority(p_booking_type) or b.start_time <= now()))
+  order by r.capacity, r.name;
+end; $$;
+
+create or replace function create_booking(
+  p_room_id bigint, p_start timestamptz, p_end timestamptz, p_group_size int,
+  p_name text, p_email text, p_org_id bigint default null, p_org_code text default null)
+returns text
+language plpgsql security definer set search_path = public as $$
+declare
+  v_room rooms%rowtype;
+  v_org organizations%rowtype;
+  v_type text := 'student';
+  v_priority int;
+  v_name text := trim(coalesce(p_name, ''));
+  v_email text := lower(trim(coalesce(p_email, '')));
+  v_code text;
+begin
+  select * into v_room from rooms where id = p_room_id;
+  if not found then raise exception 'Room not found'; end if;
+  if v_name = '' then raise exception 'Please enter your name'; end if;
+  if v_email !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' then
+    raise exception 'Please enter a valid email'; end if;
+  if p_group_size is null or p_group_size < 1 then
+    raise exception 'Group size must be at least 1'; end if;
+  if p_start is null or p_end is null or p_end <= p_start then
+    raise exception 'End time must be after start time'; end if;
+  if p_start <> date_trunc('minute', p_start) or extract(minute from p_start)::int % 15 <> 0
+     or p_end <> date_trunc('minute', p_end) or extract(minute from p_end)::int % 15 <> 0 then
+    raise exception 'Times must be on the hour or at :15, :30 or :45'; end if;
+  if p_start < now() - interval '15 minutes' then raise exception 'Start time is in the past'; end if;
+  if p_start > now() + interval '14 days' then
+    raise exception 'Rooms can be booked up to 14 days ahead'; end if;
+  if p_group_size > v_room.capacity then
+    raise exception 'Group is larger than room capacity (%)', v_room.capacity; end if;
+  if p_end - p_start > interval '2 hours' then
+    raise exception 'Bookings are limited to 2 hours'; end if;
+
+  if p_org_id is not null then
+    select * into v_org from organizations where id = p_org_id;
+    if not found or v_org.access_code <> coalesce(p_org_code, '') then
+      raise exception 'Invalid organization or access code'; end if;
+    v_type := v_org.org_type;
+    if v_room.students_only and not is_club_time(p_start) then
+      raise exception 'Clubs can book this room only from 6 PM on weekdays or on weekends'; end if;
+  else
+    if v_room.room_type <> 'study' then
+      raise exception 'Students can only book study rooms'; end if;
+  end if;
+
+  -- one active booking per email per day; the lock stops two tabs booking at the same moment
+  perform pg_advisory_xact_lock(hashtext(v_email));
+  if exists (select 1 from bookings b
+             where b.booker_email = v_email and b.status = 'active'
+               and (b.start_time at time zone 'America/New_York')::date
+                 = (p_start at time zone 'America/New_York')::date) then
+    raise exception 'You already have a booking that day. Cancel it first to book a different room.';
+  end if;
+
+  v_priority := booking_priority(v_type);
+
+  -- blocked by an equal/higher priority booking, or one that already started
+  if exists (select 1 from bookings b
+             where b.room_id = p_room_id and b.status = 'active'
+               and tstzrange(b.start_time, b.end_time) && tstzrange(p_start, p_end)
+               and (b.priority >= v_priority or b.start_time <= now())) then
+    raise exception 'That room is already booked for that time'; end if;
+
+  -- bump any lower-priority bookings in the way
+  update bookings set status = 'bumped'
+  where room_id = p_room_id and status = 'active'
+    and tstzrange(start_time, end_time) && tstzrange(p_start, p_end);
+
+  -- retry in the rare case the random booking code is already taken
+  loop
+    begin
+      insert into bookings (room_id, start_time, end_time, group_size, booker_name,
+                            booker_email, booking_type, priority, org_id, organization_name,
+                            booking_code)
+      values (p_room_id, p_start, p_end, p_group_size, v_name, v_email,
+              v_type, v_priority, v_org.id, v_org.name, substr(md5(random()::text), 1, 6))
+      returning booking_code into v_code;
+      exit;
+    exception when unique_violation then
+      -- code collision: loop and try a new one
+    end;
+  end loop;
+  return v_code;
+exception when exclusion_violation then
+  raise exception 'That room is already booked for that time';
+end; $$;
+
+create or replace function get_bump_alternatives(p_code text, p_email text)
+returns table (room_id bigint, room_name text, capacity int,
+               start_time timestamptz, end_time timestamptz, same_time boolean)
+language sql stable security definer set search_path = public as $$
+  with orig as (
+    select b.start_time, b.end_time, b.group_size, b.booking_type, r.location_id
+    from bookings b join rooms r on r.id = b.room_id
+    where b.booking_code = p_code
+      and lower(b.booker_email) = lower(p_email)
+      and b.status = 'bumped'
+  ),
+  shifts as (select generate_series(-2, 2) as h)
+  select r.id, r.name, r.capacity,
+         o.start_time + make_interval(hours => s.h),
+         o.end_time + make_interval(hours => s.h),
+         s.h = 0
+  from orig o
+  cross join shifts s
+  join rooms r on r.location_id = o.location_id
+  where r.capacity >= o.group_size
+    and (case when o.booking_type = 'student'
+              then r.room_type = 'study'
+              else (not r.students_only or is_club_time(o.start_time + make_interval(hours => s.h))) end)
+    and o.start_time + make_interval(hours => s.h) > now()
+    and not exists (
+      select 1 from bookings x
+      where x.room_id = r.id and x.status = 'active'
+        and tstzrange(x.start_time, x.end_time) &&
+            tstzrange(o.start_time + make_interval(hours => s.h),
+                      o.end_time + make_interval(hours => s.h)))
+  order by (s.h <> 0), abs(s.h), r.capacity, r.name;
+$$;
