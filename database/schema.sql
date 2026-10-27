@@ -655,3 +655,37 @@ revoke execute on function run_booking_jobs() from public, anon, authenticated;
 
 select cron.unschedule(jobid) from cron.job where jobname = 'release-no-shows';
 select cron.schedule('booking-jobs', '* * * * *', 'select run_booking_jobs()');
+
+-- ===== 12. Real UGA clubs =====
+-- Replaces the test clubs from section 6. Each club gets a fresh random 8-character access code;
+-- see the codes with: select name, org_type, access_code from organizations order by name;
+-- Staff add more clubs the same way, or change a code in the Table Editor (organizations table).
+update bookings set org_id = null
+where org_id in (select id from organizations
+                 where name in ('Chess Club', 'Pre-Law Professional Fraternity'));
+delete from organizations where name in ('Chess Club', 'Pre-Law Professional Fraternity');
+
+insert into organizations (name, org_type) values
+  -- professional clubs (priority 3)
+  ('Alpha Kappa Psi', 'professional_club'),
+  ('Kappa Theta Pi (KTP)', 'professional_club'),
+  ('Theta Tau', 'professional_club'),
+  -- regular clubs (priority 2)
+  ('Accounting Society', 'club'),
+  ('AI Society at Terry', 'club'),
+  ('American Marketing Association', 'club'),
+  ('Association for Computing Machinery', 'club'),
+  ('Chess Dawgs', 'club'),
+  ('CodeHub', 'club'),
+  ('Debate Union', 'club'),
+  ('Demosthenian Literary Society', 'club'),
+  ('Engineers Without Borders', 'club'),
+  ('National Society of Black Engineers', 'club'),
+  ('Phi Kappa Literary Society', 'club'),
+  ('Robotics Club', 'club'),
+  ('Society of Hispanic Professional Engineers', 'club'),
+  ('Society of Women Engineers', 'club'),
+  ('Terry Student Consulting', 'club'),
+  ('UGA Motorsports', 'club'),
+  ('UGAHacks', 'club')
+on conflict (name) do nothing;
