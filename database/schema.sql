@@ -361,3 +361,65 @@ join locations l on l.name = v.library;
 
 -- study rooms holding 8 or fewer people are students-only (same rule as section 4)
 update rooms set students_only = (room_type = 'study' and capacity <= 8);
+
+-- ===== 10. Check-in and no-show release =====
+-- Students check in with booking code + email between the start time and 15 minutes after.
+-- Bookings nobody checked in to are marked 'released' so the room frees up.
+alter table bookings add column if not exists checked_in_at timestamptz;
+
+alter table bookings drop constraint if exists bookings_status_check;
+alter table bookings add constraint bookings_status_check
+  check (status in ('active','bumped','cancelled','released'));
+
+create or replace function check_in(p_code text, p_email text)
+returns timestamptz
+language plpgsql security definer set search_path = public as $$
+declare v_booking bookings%rowtype;
+begin
+  select * into v_booking from bookings
+  where booking_code = p_code and lower(booker_email) = lower(p_email);
+  if not found then raise exception 'No booking found with that code and email'; end if;
+  if v_booking.status = 'released' then
+    raise exception 'This booking was released because nobody checked in within 15 minutes'; end if;
+  if v_booking.status <> 'active' then raise exception 'This booking is %', v_booking.status; end if;
+  if v_booking.checked_in_at is not null then return v_booking.checked_in_at; end if;
+  if now() < v_booking.start_time then
+    raise exception 'Check-in opens at the start of your booking'; end if;
+  if now() > v_booking.start_time + interval '15 minutes' then
+    raise exception 'Check-in closed 15 minutes after the start time'; end if;
+
+  update bookings set checked_in_at = now() where id = v_booking.id
+  returning checked_in_at into v_booking.checked_in_at;
+  return v_booking.checked_in_at;
+end; $$;
+
+-- run every minute by pg_cron (below), not by the public API
+create or replace function release_no_shows()
+returns int
+language plpgsql security definer set search_path = public as $$
+declare v_count int;
+begin
+  update bookings set status = 'released'
+  where status = 'active'
+    and checked_in_at is null
+    and start_time <= now() - interval '15 minutes'
+    and end_time > now();
+  get diagnostics v_count = row_count;
+  return v_count;
+end; $$;
+revoke execute on function release_no_shows() from public, anon, authenticated;
+
+-- booking lookup now also returns checked_in_at
+drop function if exists get_booking_status(text, text);
+create or replace function get_booking_status(p_code text, p_email text)
+returns table (status text, room_name text, start_time timestamptz, end_time timestamptz,
+               group_size int, booker_name text, checked_in_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select b.status, r.name, b.start_time, b.end_time, b.group_size, b.booker_name, b.checked_in_at
+  from bookings b join rooms r on r.id = b.room_id
+  where b.booking_code = p_code and lower(b.booker_email) = lower(p_email);
+$$;
+
+-- schedule the no-show check every minute
+create extension if not exists pg_cron with schema pg_catalog;
+select cron.schedule('release-no-shows', '* * * * *', 'select release_no_shows()');
