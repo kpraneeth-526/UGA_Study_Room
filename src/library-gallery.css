@@ -1,9 +1,12 @@
+/* SECTION BASE: Cream background, dark text, outer padding, and clipped overflow for the gallery section. */
 .library-gallery {
   background: #f5efe5;
   color: #381d1c;
   padding: clamp(64px, 8vw, 130px) max(24px, 5vw);
   overflow: hidden;
 }
+
+/* HEADING LAYOUT: Places the large title beside the descriptive paragraph on wide screens. */
 .library-gallery-heading {
   display: flex;
   justify-content: space-between;
@@ -11,11 +14,15 @@
   gap: 35px;
   margin-bottom: 45px;
 }
+
+/* EYEBROW: Small uppercase-style label above the main heading. */
 .library-gallery-eyebrow {
   font-size: 11px;
   letter-spacing: 0.16em;
   font-weight: 700;
 }
+
+/* HEADING TYPOGRAPHY: Responsive title size and tightly spaced editorial lettering. */
 .library-gallery h2 {
   font-family: inherit;
   font-weight: 500;
@@ -24,54 +31,27 @@
   line-height: 0.99;
   margin: 20px 0 0;
 }
+
+/* ITALIC ACCENT: Gives “something good” its serif typeface and burgundy color. */
 .library-gallery h2 em {
   font-family: Georgia, serif;
   font-weight: 400;
   color: #6f1d1b;
 }
+
+/* INTRO TEXT: Caps paragraph width so the heading remains visually dominant. */
 .library-gallery-intro {
   max-width: 260px;
   flex: none;
 }
+
 .library-gallery-intro p {
   line-height: 1.55;
   font-size: 15px;
   color: #65504a;
 }
-.library-gallery-controls {
-  display: flex;
-  gap: 8px;
-  margin-top: 22px;
-}
-.library-gallery-controls button {
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  border: 1px solid #947b72;
-  background: transparent;
-  color: #381d1c;
-  cursor: pointer;
-  font-size: 20px;
-  transition:
-    background 0.25s,
-    color 0.25s;
-}
-.library-gallery-controls button:hover {
-  background: #6f1d1b;
-  color: white;
-}
-.library-gallery-track {
-  display: flex;
-  gap: 18px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-  overscroll-behavior-inline: contain;
-  padding-bottom: 16px;
-}
-.library-gallery-track::-webkit-scrollbar {
-  display: none;
-}
+
+/* LIBRARY CARDS: Clickable card sizing, reset button styling, and text alignment. */
 .library-gallery-card {
   flex: 0 0 clamp(260px, 30vw, 435px);
   text-align: left;
@@ -83,6 +63,8 @@
   scroll-snap-align: start;
   font: inherit;
 }
+
+/* IMAGE FRAME: Sets the card background, crop area, and image clipping. */
 .library-gallery-image-wrap {
   display: block;
   position: relative;
@@ -91,6 +73,8 @@
   overflow: hidden;
   border-radius: 2px;
 }
+
+/* PHOTO OVERLAY: Adds a subtle dark gradient for legibility of text over photos; pointer-events keeps clicks working. */
 .library-gallery-image-wrap:after {
   content: "";
   position: absolute;
@@ -98,6 +82,8 @@
   background: linear-gradient(180deg, transparent 55%, rgba(28, 10, 10, 0.45));
   pointer-events: none;
 }
+
+/* PHOTO SIZING: Fills the image frame without stretching the photograph. */
 .library-gallery-image-wrap img {
   display: block;
   width: 100%;
@@ -107,11 +93,15 @@
     transform 0.7s cubic-bezier(0.2, 0.7, 0.1, 1),
     filter 0.5s;
 }
+
+/* CARD HOVER: Slight zoom and reduced saturation, also applied when a card receives keyboard focus. */
 .library-gallery-card:hover img,
 .library-gallery-card:focus-visible img {
   transform: scale(1.07);
   filter: saturate(0.85);
 }
+
+/* EXPLORE LABEL: Positioned above the photo; hidden until hover or keyboard focus. */
 .library-gallery-visit {
   position: absolute;
   bottom: 20px;
@@ -128,11 +118,14 @@
     transform 0.3s,
     opacity 0.3s;
 }
+
 .library-gallery-card:hover .library-gallery-visit,
 .library-gallery-card:focus-visible .library-gallery-visit {
   transform: translateY(0);
   opacity: 1;
 }
+
+/* CARD METADATA: Small label and arrow displayed between the photo and library name. */
 .library-gallery-meta {
   display: flex;
   justify-content: space-between;
@@ -142,6 +135,8 @@
   letter-spacing: 0.13em;
   color: #82645d;
 }
+
+/* LIBRARY NAME: Main card label in responsive type. */
 .library-gallery-name {
   display: block;
   font-size: clamp(23px, 2.6vw, 38px);
@@ -150,6 +145,8 @@
   letter-spacing: -0.035em;
   margin-top: 7px;
 }
+
+/* BOTTOM HELPER TEXT: Instructional text beneath the photo row. */
 .library-gallery-bottom {
   display: flex;
   justify-content: space-between;
@@ -160,37 +157,48 @@
   letter-spacing: 0.13em;
   color: #7c5c51;
 }
+
+/* MOBILE BASE STYLES: Stacks heading content and increases individual card width on narrow screens. */
 @media (max-width: 700px) {
   .library-gallery {
     padding: 65px 18px;
   }
+
   .library-gallery-heading {
     display: block;
   }
+
   .library-gallery-intro {
     margin-top: 24px;
   }
+
   .library-gallery-card {
     flex-basis: 75vw;
   }
+
   .library-gallery-visit {
     opacity: 1;
     transform: none;
   }
+
   .library-gallery-bottom {
     font-size: 9px;
   }
+
 }
+
+/* REDUCED MOTION: Avoids animated transitions for visitors who request reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   .library-gallery * {
     scroll-behavior: auto !important;
     transition: none !important;
   }
+
 }
 
+/* LATER COMPACT OVERRIDES: Reduces spacing and image height compared with the original gallery design. */
 
 /* Compact library gallery */
-
 .library-gallery {
   padding-top: 35px;
   padding-bottom: 30px;
@@ -235,9 +243,9 @@
   margin-top: 15px;
 }
 
+/* FULL-VIEWPORT OVERRIDES: Fits the gallery into one screen on desktop and lets the photo row fill remaining height. */
 
 /* Full-screen editorial library gallery */
-
 .library-gallery {
   height: 100svh;
   min-height: 0;
@@ -307,6 +315,8 @@
   margin-top: 12px;
 }
 
+/* SHORT LAPTOP SCREENS: Compresses the heading and outer padding when viewport height is limited. */
+
 /* Adjust spacing for shorter laptop screens */
 @media (max-height: 750px) {
   .library-gallery {
@@ -325,7 +335,10 @@
   .library-gallery-intro p {
     margin-bottom: 6px;
   }
+
 }
+
+/* MOBILE FULL-VIEWPORT EXCEPTION: Allows the section to expand naturally on phones. */
 
 /* Mobile: allow the section to grow when needed */
 @media (max-width: 700px) {
@@ -340,88 +353,14 @@
     height: 48svh;
     min-height: 280px;
   }
+
 }
 
-
-.library-gallery-track {
-  width: 100%;
-  overflow: hidden;
-}
-
-.library-gallery-marquee {
-  display: flex;
-  width: max-content;
-  height: 100%;
-  animation: library-photo-scroll 110s linear infinite;
-  will-change: transform;
-}
-
-.library-gallery-group {
-  display: flex;
-  flex: 0 0 auto;
-  gap: 22px;
-  padding-right: 22px;
-  height: 100%;
-}
-
-.library-gallery-track:hover .library-gallery-marquee,
-.library-gallery-track:focus-within .library-gallery-marquee {
-  animation-play-state: paused;
-}
-
-@keyframes library-photo-scroll {
-  from {
-    transform: translateX(0);
-  }
-
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .library-gallery-marquee {
-    animation: none;
-  }
-
-  .library-gallery-track {
-    overflow-x: auto;
-  }
-}
-
-
-/* Automatic marquee + manual mouse-wheel scrolling */
-
-.library-gallery-track {
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  overscroll-behavior-x: contain;
-}
-
-.library-gallery-track::-webkit-scrollbar {
-  display: none;
-}
-
-.library-gallery-marquee {
-  animation: library-photo-scroll 110s linear infinite;
-}
-
-.library-gallery-marquee.paused {
-  animation-play-state: paused;
-}
-
-.library-gallery-track:hover {
-  cursor: grab;
-}
-
-.library-gallery-card:hover {
-  cursor: pointer;
-}
-
+/* CURRENT JAVASCRIPT-DRIVEN MARQUEE STYLES: These final rules take precedence over many previous declarations. JavaScript controls scrollLeft for auto-scroll and manual wheel-scroll. */
 
 /* Manual + automatic seamless library marquee */
 
+/* TRACK SETTINGS: Enable native horizontal scrolling, disable snap/smooth scrolling, hide the scrollbar, and prevent horizontal overscroll chaining. */
 .library-gallery-track {
   width: 100%;
   overflow-x: auto;
@@ -436,6 +375,7 @@
   display: none;
 }
 
+/* IMPORTANT: Disable all CSS transform/keyframe animation. Otherwise CSS and JavaScript would compete for the photo position. */
 .library-gallery-marquee {
   display: flex;
   width: max-content;
@@ -444,6 +384,7 @@
   transform: none !important;
 }
 
+/* GROUP SPACING: Both photo groups share the same width, gap and right padding so wrapping is visually seamless. */
 .library-gallery-group {
   display: flex;
   flex: 0 0 auto;
@@ -452,13 +393,14 @@
   height: 100%;
 }
 
+/* FINAL CARD WIDTH: Sets consistent responsive widths. Removes snap alignment so manual scrolling can stop anywhere. */
 .library-gallery-card {
   flex: 0 0 clamp(260px, 29vw, 390px);
   width: clamp(260px, 29vw, 390px);
   scroll-snap-align: none !important;
 }
 
-/* Indicate mouse-wheel interaction */
+/* POINTER FEEDBACK: Grab cursor over the gallery; pointer cursor on each clickable library card. */
 .library-gallery-track:hover {
   cursor: grab;
 }
@@ -467,8 +409,3 @@
   cursor: pointer;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .library-gallery-track {
-    scroll-behavior: auto;
-  }
-}
