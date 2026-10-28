@@ -1,3 +1,11 @@
+/* ============================================================================
+   LIBRARY EXPLORER
+   A library-specific room search and results page.
+   Colors and typography match the Study Space cream/burgundy theme.
+   Room availability and booking behavior live in LibraryExplorer.jsx, not CSS.
+   ============================================================================ */
+
+/* Page shell: generous desktop spacing and at least one screen of height. */
 .library-explorer {
   background: #fff9ef;
   color: #432818;
@@ -5,19 +13,18 @@
   min-height: 100svh;
   box-sizing: border-box;
 }
-.explorer-topline,
-.explorer-results-heading,
-.explorer-room-info {
+
+/* Navigation row: back button on the left, page label on the right. */
+.explorer-topline {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-}
-.explorer-topline {
   font-size: 11px;
   letter-spacing: 0.14em;
   color: #805f53;
 }
+
 .explorer-back {
   background: none;
   border: 0;
@@ -28,6 +35,8 @@
   font-size: 14px;
   padding: 6px 0;
 }
+
+/* Library title and description. The decorative mark sits to the right. */
 .explorer-heading {
   display: flex;
   justify-content: space-between;
@@ -35,12 +44,14 @@
   gap: 16px;
   margin: 34px 0;
 }
+
 .explorer-eyebrow {
   font-size: 11px;
   letter-spacing: 0.14em;
   color: #935e46;
   font-weight: 700;
 }
+
 .explorer-heading h2 {
   font-size: clamp(2.7rem, 6vw, 6rem);
   letter-spacing: -0.055em;
@@ -49,20 +60,25 @@
   font-family: Georgia, serif;
   font-weight: 400;
 }
+
 .explorer-heading p {
   max-width: 520px;
   color: #795c50;
   line-height: 1.6;
   margin: 0;
 }
+
 .explorer-dot {
   color: #ae735e;
 }
+
 .explorer-mark {
   font-size: clamp(80px, 12vw, 180px);
   line-height: 1;
   color: #b98c70;
 }
+
+/* Search filters: date, time, duration, people, and submit button. */
 .explorer-filters {
   display: grid;
   grid-template-columns: 1.2fr 1fr 0.95fr 0.7fr auto;
@@ -73,6 +89,7 @@
   padding: 18px;
   margin-bottom: 36px;
 }
+
 .explorer-filters label {
   display: flex;
   flex-direction: column;
@@ -81,6 +98,7 @@
   font-weight: 600;
   color: #6a4b40;
 }
+
 .explorer-filters input,
 .explorer-filters select {
   width: 100%;
@@ -94,6 +112,8 @@
   padding: 8px;
   font: inherit;
 }
+
+/* Shared button baseline; the room reservation button gets extra styles below. */
 .explorer-search,
 .explorer-room-info button {
   background: #6f1d1b;
@@ -106,175 +126,13 @@
   padding: 12px 16px;
   min-height: 44px;
 }
+
 .explorer-search:disabled {
   opacity: 0.6;
   cursor: wait;
 }
-.explorer-results-heading {
-  margin-bottom: 18px;
-  align-items: end;
-}
-.explorer-results-heading h3 {
-  font-size: clamp(1.4rem, 3vw, 2.4rem);
-  font-family: Georgia, serif;
-  font-weight: 400;
-  margin: 6px 0 0;
-}
-.explorer-results-heading > span {
-  font-size: 13px;
-  color: #805f53;
-}
-.explorer-room-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
-}
-.explorer-room-card {
-  background: #fffdf8;
-  border: 1px solid #e5d9cb;
-  border-radius: 14px;
-  overflow: hidden;
-}
-.explorer-room-art {
-  position: relative;
-  height: 185px;
-  background: #dbbfa3;
-  overflow: hidden;
-}
-.explorer-room-card:nth-child(3n + 2) .explorer-room-art {
-  background: #c9baa7;
-}
-.explorer-room-card:nth-child(3n + 3) .explorer-room-art {
-  background: #bca18d;
-}
-.explorer-room-art-inner {
-  position: absolute;
-  inset: 0;
-}
-.explorer-art-window {
-  position: absolute;
-  left: 12%;
-  top: 12%;
-  width: 28%;
-  height: 43%;
-  border: 7px solid #f7e8d3;
-  background: #efdbbf;
-  box-shadow: inset -5px 0 #c6a88d;
-}
-.explorer-art-table {
-  position: absolute;
-  left: 29%;
-  bottom: 22%;
-  height: 22%;
-  width: 55%;
-  border-radius: 50%;
-  transform: skewY(-12deg);
-  background: #794a3b;
-  box-shadow: 0 19px #aa795f;
-}
-.explorer-art-chair {
-  position: absolute;
-  width: 12%;
-  height: 24%;
-  bottom: 8%;
-  border: 9px solid #6f1d1b;
-  border-top-width: 14px;
-  border-radius: 11px;
-}
-.explorer-art-chair.one {
-  left: 22%;
-}
-.explorer-art-chair.two {
-  right: 13%;
-}
-.explorer-room-index {
-  position: absolute;
-  top: 14px;
-  right: 16px;
-  color: #49291d;
-  font-size: 12px;
-  font-weight: 700;
-}
-.explorer-room-info {
-  padding: 16px;
-  align-items: center;
-}
-.explorer-room-info h4 {
-  font-size: 16px;
-  margin: 0 0 6px;
-  font-weight: 600;
-}
-.explorer-room-info p {
-  font-size: 12px;
-  color: #84695b;
-  margin: 0;
-}
-.explorer-room-info button {
-  white-space: nowrap;
-  font-size: 12px;
-  padding: 10px 13px;
-  min-height: 38px;
-}
-.explorer-empty {
-  border: 1px dashed #cbb9a7;
-  background: #f7eee2;
-  color: #74584b;
-  border-radius: 14px;
-  padding: 36px 24px;
-  text-align: center;
-}
-.explorer-error {
-  color: #9e1e1e;
-}
-.explorer-footnote {
-  font-size: 11px;
-  color: #987967;
-  margin: 20px 0 0;
-}
-@media (max-width: 1000px) {
-  .explorer-filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .explorer-search {
-    grid-column: 1/-1;
-  }
-  .explorer-room-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 650px) {
-  .library-explorer {
-    padding: 24px 16px;
-  }
-  .explorer-topline > span {
-    display: none;
-  }
-  .explorer-heading {
-    margin: 28px 0;
-  }
-  .explorer-mark {
-    display: none;
-  }
-  .explorer-filters {
-    gap: 10px;
-    padding: 12px;
-  }
-  .explorer-room-grid {
-    grid-template-columns: 1fr;
-  }
-  .explorer-room-art {
-    height: 220px;
-  }
-  .explorer-results-heading {
-    align-items: start;
-    flex-direction: column;
-    gap: 8px;
-  }
-}
 
-
-/* ===== Improved Library Explorer room cards ===== */
-
+/* Results area is centered and limited in width on large monitors. */
 .explorer-results {
   width: 100%;
   max-width: 1200px;
@@ -291,8 +149,16 @@
 
 .explorer-results-heading h3 {
   font-size: clamp(1.8rem, 3vw, 2.7rem);
+  font-family: Georgia, serif;
+  font-weight: 400;
   line-height: 1.1;
   margin: 0;
+}
+
+/* Supports either a <span> or <p> for the result count. */
+.explorer-results-heading > span {
+  font-size: 13px;
+  color: #805f53;
 }
 
 .explorer-results-heading p {
@@ -300,7 +166,7 @@
   font-size: 0.85rem;
 }
 
-/* Two neat columns instead of stretched cards */
+/* Two-column room gallery; cards become one column on small screens. */
 .explorer-room-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -324,36 +190,56 @@
   box-shadow: 0 15px 40px rgba(67, 40, 24, 0.09);
 }
 
-/* Decorative upper half */
+/* Illustration frame: each room displays the SVG from RoomIllustration.jsx. */
 .explorer-room-visual {
-  min-height: 170px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 22px;
-  background: #e9dfd0;
+  position: relative;
+  display: block;
+  padding: 0;
+  min-height: 0;
+  aspect-ratio: 5 / 3;
+  overflow: hidden;
+  background: #e9d8bd;
   color: #6f1d1b;
   border-bottom: 1px solid #e0d3c4;
 }
 
-.explorer-room-visual span:first-child {
-  font-size: 38px;
-  line-height: 1;
+.room-illustration {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.45s ease;
 }
 
-.explorer-room-visual span:last-child {
+/* A subtle zoom gives the otherwise static drawings some feedback on hover. */
+.explorer-room-card:hover .room-illustration {
+  transform: scale(1.045);
+}
+
+/* Number badge sits on top of the illustrated room, not in document flow. */
+.explorer-room-number,
+.explorer-room-visual .explorer-room-number:last-child {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  left: auto;
+  bottom: auto;
+  padding: 7px 12px;
+  border-radius: 100px;
+  background: #fffaf2;
+  color: #6f1d1b;
   font-size: 0.7rem;
-  letter-spacing: 0.16em;
   font-weight: 600;
+  letter-spacing: 0.08em;
 }
 
-/* Room details stacked vertically */
+/* Room name, capacity, selected time, and booking button stack vertically. */
 .explorer-room-info {
   min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 8px;
   padding: 24px;
 }
@@ -362,6 +248,7 @@
   margin: 0 0 5px;
   font-size: clamp(1.25rem, 2vw, 1.65rem);
   line-height: 1.2;
+  font-weight: 600;
   color: #432818;
 }
 
@@ -372,6 +259,7 @@
   line-height: 1.5;
 }
 
+/* Reserve action: visually prominent and full width of the card content. */
 .explorer-reserve {
   width: 100%;
   margin-top: 14px;
@@ -390,14 +278,42 @@
   background: #501312;
 }
 
+/* Empty-state message, errors, and optional note below results. */
+.explorer-empty {
+  border: 1px dashed #cbb9a7;
+  background: #f7eee2;
+  color: #74584b;
+  border-radius: 14px;
+  padding: 36px 24px;
+  text-align: center;
+}
+
+.explorer-error {
+  color: #9e1e1e;
+}
+
+.explorer-footnote {
+  font-size: 11px;
+  color: #987967;
+  margin: 20px 0 0;
+}
+
+/* Tablet: put search fields into two columns with a full-width submit button. */
+@media (max-width: 1000px) {
+  .explorer-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .explorer-search {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Narrow displays: one room per row, smaller padding, fewer decorations. */
 @media (max-width: 700px) {
   .explorer-room-grid {
     grid-template-columns: 1fr;
     gap: 18px;
-  }
-
-  .explorer-room-visual {
-    min-height: 140px;
   }
 
   .explorer-room-info {
@@ -405,43 +321,45 @@
   }
 }
 
+@media (max-width: 650px) {
+  .library-explorer {
+    padding: 24px 16px;
+  }
 
-/* Illustrated study room cards */
+  .explorer-topline > span {
+    display: none;
+  }
 
-.explorer-room-visual {
-  position: relative;
-  display: block;
-  padding: 0;
-  min-height: 0;
-  aspect-ratio: 5 / 3;
-  overflow: hidden;
-  background: #e9d8bd;
+  .explorer-heading {
+    margin: 28px 0;
+  }
+
+  .explorer-mark {
+    display: none;
+  }
+
+  .explorer-filters {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .explorer-results-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 8px;
+  }
 }
 
-.room-illustration {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.45s ease;
-}
+/* Respect users who prefer less visual movement. */
+@media (prefers-reduced-motion: reduce) {
+  .explorer-room-card,
+  .room-illustration,
+  .explorer-reserve {
+    transition: none;
+  }
 
-.explorer-room-card:hover .room-illustration {
-  transform: scale(1.045);
-}
-
-.explorer-room-number,
-.explorer-room-visual .explorer-room-number:last-child {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  left: auto;
-  bottom: auto;
-  padding: 7px 12px;
-  border-radius: 100px;
-  background: #fffaf2;
-  color: #6f1d1b;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  .explorer-room-card:hover,
+  .explorer-room-card:hover .room-illustration {
+    transform: none;
+  }
 }
