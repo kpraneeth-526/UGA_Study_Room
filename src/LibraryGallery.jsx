@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from "react";
 import './library-gallery.css';
 
 // Real photographs of UGA library buildings. These are linked from their original
@@ -17,11 +17,78 @@ const LIBRARY_IMAGES = {
 const LIBRARY_COLORS = ['#a77d60', '#92705b', '#b9a283', '#8b786c', '#b38f74'];
 
 export default function LibraryGallery({ locations = [], onChoose }) {
-  const track = useRef(null);
 
-  const move = (direction) => {
-    track.current?.scrollBy({ left: direction * 330, behavior: 'smooth' });
+  
+const track = useRef(null);
+const group = useRef(null);
+const paused = useRef(false);
+const position = useRef(0);
+
+useEffect(() => {
+  const container = track.current;
+  const firstGroup = group.current;
+
+  if (!container || !firstGroup) return;
+
+  let frame;
+  let previousTime;
+
+  const animate = (time) => {
+    if (previousTime === undefined) previousTime = time;
+
+    const delta = Math.min(time - previousTime, 50);
+    previousTime = time;
+
+    const loopWidth = firstGroup.offsetWidth;
+
+    if (!paused.current && loopWidth > 0) {
+      position.current += (delta / 1000) * 12;
+    }
+
+    if (loopWidth > 0) {
+      position.current =
+        ((position.current % loopWidth) + loopWidth) % loopWidth;
+    }
+
+    container.scrollLeft = position.current;
+    frame = requestAnimationFrame(animate);
   };
+
+  frame = requestAnimationFrame(animate);
+
+  return () => cancelAnimationFrame(frame);
+}, [locations.length]);
+
+useEffect(() => {
+  const container = track.current;
+
+  if (!container) return;
+
+    const handleWheel = (event) => {
+      if (!paused.current) return;
+
+      // Keep the page from scrolling when navigating the gallery.
+      event.preventDefault();
+
+      const amount =
+        Math.abs(event.deltaY) >= Math.abs(event.deltaX)
+          ? event.deltaY
+          : event.deltaX;
+
+      const loopWidth = group.current?.offsetWidth || 0;
+      if (!loopWidth) return;
+
+      position.current =
+        (((position.current + amount) % loopWidth) + loopWidth) % loopWidth;
+
+      container.scrollLeft = position.current;
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => container.removeEventListener("wheel", handleWheel);
+  }, []);
+
 
   return (
     <section className="library-gallery section" aria-labelledby="library-gallery-title">
@@ -32,16 +99,30 @@ export default function LibraryGallery({ locations = [], onChoose }) {
         </div>
         <div className="library-gallery-intro">
           <p>Every good study session starts somewhere. Explore our campus spaces and find the one that feels right.</p>
-          <div className="library-gallery-controls" aria-label="Gallery navigation">
-            <button type="button" onClick={() => move(-1)} aria-label="Previous libraries">←</button>
-            <button type="button" onClick={() => move(1)} aria-label="Next libraries">→</button>
-          </div>
         </div>
       </div>
-      <div className="library-gallery-track" ref={track}>
-        {locations.map((location, index) => (
+      <div
+        className="library-gallery-track"
+        ref={track}
+        onMouseEnter={() => {
+          paused.current = true;
+        }}
+        onMouseLeave={() => {
+          paused.current = false;
+        }}
+      >
+        <div className="library-gallery-marquee">
+          {[0, 1].map((copy) => (
+            <div
+              className="library-gallery-group"
+              key={copy}
+              ref={copy === 0 ? group : null}
+              aria-hidden={copy === 1 ? "true" : undefined}
+            >
+              {locations.map((location, index) => (
           <button
             key={location.id}
+            tabIndex={copy === 1 ? -1 : 0}
             className="library-gallery-card"
             type="button"
             onClick={() => onChoose(location)}
@@ -65,9 +146,15 @@ export default function LibraryGallery({ locations = [], onChoose }) {
             <span className="library-gallery-meta"><span>{String(index + 1).padStart(2, '0')} / CAMPUS LIBRARY</span><span aria-hidden="true">↗</span></span>
             <span className="library-gallery-name">{location.name}</span>
           </button>
-        ))}
+          ))}
+        </div>
+      ))}
+    </div>
+  </div>
+      <div className="library-gallery-bottom">
+        <span>HOVER TO PAUSE / EXPLORE</span>
+        <span>SELECT A LIBRARY TO FIND A ROOM ↗</span>
       </div>
-      <div className="library-gallery-bottom"><span>SCROLL / SWIPE TO EXPLORE</span><span>SELECT A LIBRARY TO FIND A ROOM ↗</span></div>
     </section>
   );
 }

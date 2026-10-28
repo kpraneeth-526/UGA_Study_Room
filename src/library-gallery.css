@@ -341,3 +341,134 @@
     min-height: 280px;
   }
 }
+
+
+.library-gallery-track {
+  width: 100%;
+  overflow: hidden;
+}
+
+.library-gallery-marquee {
+  display: flex;
+  width: max-content;
+  height: 100%;
+  animation: library-photo-scroll 110s linear infinite;
+  will-change: transform;
+}
+
+.library-gallery-group {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 22px;
+  padding-right: 22px;
+  height: 100%;
+}
+
+.library-gallery-track:hover .library-gallery-marquee,
+.library-gallery-track:focus-within .library-gallery-marquee {
+  animation-play-state: paused;
+}
+
+@keyframes library-photo-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-gallery-marquee {
+    animation: none;
+  }
+
+  .library-gallery-track {
+    overflow-x: auto;
+  }
+}
+
+
+/* Automatic marquee + manual mouse-wheel scrolling */
+
+.library-gallery-track {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.library-gallery-track::-webkit-scrollbar {
+  display: none;
+}
+
+.library-gallery-marquee {
+  animation: library-photo-scroll 110s linear infinite;
+}
+
+.library-gallery-marquee.paused {
+  animation-play-state: paused;
+}
+
+.library-gallery-track:hover {
+  cursor: grab;
+}
+
+.library-gallery-card:hover {
+  cursor: pointer;
+}
+
+
+/* Manual + automatic seamless library marquee */
+
+.library-gallery-track {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: auto !important;
+  scroll-snap-type: none !important;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.library-gallery-track::-webkit-scrollbar {
+  display: none;
+}
+
+.library-gallery-marquee {
+  display: flex;
+  width: max-content;
+  height: 100%;
+  animation: none !important;
+  transform: none !important;
+}
+
+.library-gallery-group {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 22px;
+  padding-right: 22px;
+  height: 100%;
+}
+
+.library-gallery-card {
+  flex: 0 0 clamp(260px, 29vw, 390px);
+  width: clamp(260px, 29vw, 390px);
+  scroll-snap-align: none !important;
+}
+
+/* Indicate mouse-wheel interaction */
+.library-gallery-track:hover {
+  cursor: grab;
+}
+
+.library-gallery-card {
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-gallery-track {
+    scroll-behavior: auto;
+  }
+}
