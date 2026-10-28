@@ -1,17 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Manrope:wght@400;500;600;650;700;800&display=swap');
 :root {
   font-family: 'DM Sans', Arial, sans-serif;
-  color: #432818;
-  background: #fff6df;
+  color: #000000;
+  background: #f8f7f4;
+
   font-synthesis: none;
   font-weight: 400;
   font-size: 15px;
-  --paper: #fff6df;
-  --ink: #432818;
-  --muted: #795135;
-  --line: #bb94574d;
-  --accent: #6f1d1b;
-  --green: #99582a;
+
+  --paper: #f8f7f4;
+  --ink: #000000;
+  --muted: #554f47;
+  --line: #d6d2c4;
+  --accent: #ba0c2f;
+  --green: #554f47;
 }
 * {
   box-sizing: border-box;
@@ -1797,3 +1799,4 @@ footer > a:last-child {
   border-radius: 20px;
   cursor: pointer;
 }
+
