@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import LibraryGallery from "./LibraryGallery";
+import LibraryExplorer from "./LibraryExplorer";
 import { configured, getLocations, rpc, supabase } from "./supabase";
 import { demoLocations, demoRooms } from "./demo";
 import {
@@ -806,6 +808,9 @@ export default function App() {
     [manage, setManage] = useState(false),
     [visible, setVisible] = useState(6),
     [notice, setNotice] = useState("");
+
+  const [exploring, setExploring] = useState(null);
+
   const finder = useRef(null),
     request = useRef(0);
   useEffect(() => {
@@ -913,6 +918,14 @@ export default function App() {
   function jump() {
     finder.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+  useEffect(() => {
+  if (exploring) {
+    document.getElementById("library-explorer")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
+}, [exploring]);
   const selectedLoc = locations.find(
     (l) => String(l.id) === String(searched?.search.location || form.location),
   );
@@ -1352,20 +1365,29 @@ export default function App() {
             ))}
           </div>
         </section>
-        <section className="closing section reveal">
-          <span className="eyebrow">YOUR NEXT CHAPTER STARTS HERE</span>
-          <h2>
-            Make room for
-            <br />
-            <span className="serif">something good.</span>
-          </h2>
-          <button className="button" onClick={jump}>
-            Let’s find your space <Icon name="up" />
-          </button>
-          <span className="closing-flower" aria-hidden="true">
-            ✳
-          </span>
-        </section>
+        
+        
+        {exploring ? (
+          <LibraryExplorer
+            key={exploring.id}
+            location={exploring}
+            onBack={() => setExploring(null)}
+            onReserve={(room, window, search) => {
+              setSelection({
+                room,
+                window,
+                search,
+              });
+            }}
+          />
+        ) : (
+          <LibraryGallery
+            locations={locations}
+            onChoose={(location) => setExploring(location)}
+          />
+        )}
+
+
       </main>
       <footer>
         <Logo />
