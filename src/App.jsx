@@ -3,6 +3,8 @@ import LibraryGallery from "./LibraryGallery";
 import LibraryExplorer from "./LibraryExplorer";
 import { configured, getLocations, rpc, supabase } from "./supabase";
 import { demoLocations, demoRooms } from "./demo";
+
+// Reusable SVG icon: selects a path by name and passes through SVG attributes.
 import {
   dateKey,
   clockKey,
@@ -17,14 +19,20 @@ function Icon({ name = "arrow", size = 20, ...props }) {
   const paths = {
     arrow: "M4 12h16m-6-6 6 6-6 6",
     up: "M6 18 18 6M6 6h12v12",
-    pin: "M12 21s7-6 7-13a7 7 0 0 0-14 0c0 7 7 13 7 13Z M14 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0",
-    clock: "M12 8v5l3 2 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
+    pin: 
+      "M12 21s7-6 7-13a7 7 0 0 0-14 0c0 7 7 13 7 13Z M14 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0",
+    clock: 
+      "M12 8v5l3 2 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
     people:
       "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0M20 21v-3a4 4 0 0 0-3-3M17 3a4 4 0 0 1 0 8",
-    check: "m5 12 4 4L19 6",
-    close: "m6 6 12 12M6 18 18 6",
-    book: "M3 4h6l3 3 3-3h6v16h-6l-3 2-3-2H3ZM12 7v15",
-    sun: "M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
+    check: 
+      "m5 12 4 4L19 6",
+    close: 
+      "m6 6 12 12M6 18 18 6",
+    book: 
+      "M3 4h6l3 3 3-3h6v16h-6l-3 2-3-2H3ZM12 7v15",
+    sun: 
+      "M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
   };
   return (
     <svg
@@ -43,6 +51,8 @@ function Icon({ name = "arrow", size = 20, ...props }) {
     </svg>
   );
 }
+
+// Header/footer branding links back to the home section.
 function Logo() {
   return (
     <a className="logo" href="#home" aria-label="Study Space home">
@@ -52,6 +62,8 @@ function Logo() {
     </a>
   );
 }
+
+// Decorative SVG study-room artwork; variant selects a color palette.
 function RoomArt({ variant = 0, hero = false }) {
   const colors = [
     ["#d6b783", "#fff0ca", "#6f1d1b"],
@@ -130,6 +142,10 @@ function RoomArt({ variant = 0, hero = false }) {
     </svg>
   );
 }
+
+// Shared native dialog; locks page scrolling while open and supports dismissal.
+
+// Shared native dialog: handles Escape, backdrop clicks, and temporarily prevents background scrolling.
 function Modal({ title, children, onClose, wide = false }) {
   const ref = useRef(null);
   useEffect(() => {
@@ -169,6 +185,8 @@ function Modal({ title, children, onClose, wide = false }) {
     </dialog>
   );
 }
+
+// Displays success or error notices with the appropriate accessible announcement role.
 const Message = ({ children, good = false }) =>
   children ? (
     <div
@@ -178,6 +196,8 @@ const Message = ({ children, good = false }) =>
       {children}
     </div>
   ) : null;
+
+// Booking dialog: collects user details and submits a reservation via Supabase RPC.
 function Booking({ selection, organizations, onClose, onBooked }) {
   const { room, window: win, search } = selection;
   const [name, setName] = useState(""),
@@ -188,13 +208,18 @@ function Booking({ selection, organizations, onClose, onBooked }) {
     [pending, setPending] = useState(false),
     [error, setError] = useState(""),
     [confirmation, setConfirmation] = useState(null);
+
+  // Allow alternative reservations to switch between student and organization booking types.
   const [bookingType, setBookingType] = useState(search.type);
+  // Organization bookings include an organization ID and access code in the RPC request.
   const club = bookingType !== "student";
+  // Create a booking; show its confirmation code or an error to the user.
   async function submit(e) {
     e.preventDefault();
     setPending(true);
     setError("");
     try {
+      // The database validates availability and creates the reservation; it returns a confirmation code.
       const bookingCode = await rpc("create_booking", {
         p_room_id: room.id,
         p_start: win.start,
@@ -236,6 +261,7 @@ function Booking({ selection, organizations, onClose, onBooked }) {
           </p>
         </div>
       </div>
+      // After booking succeeds, replace the form with the confirmation details.
       {confirmation ? (
         <>
           <div className="confirmation">
@@ -326,6 +352,7 @@ function Booking({ selection, organizations, onClose, onBooked }) {
               Your verified organization determines your booking priority.
             </p>
           )}
+          // Require acknowledgment when a higher-priority booking may displace another group.
           {room.would_bump && (
             <label className="checkbox">
               <input
@@ -357,17 +384,22 @@ function Booking({ selection, organizations, onClose, onBooked }) {
     </Modal>
   );
 }
+
+// Daily room schedule dialog: loads reservations without exposing other guests.
 function Schedule({ room, date, onClose }) {
   const [items, setItems] = useState([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState("");
   useEffect(() => {
+
+    // Prevent asynchronous responses from updating state after the component unmounts.
     let active = true;
     async function load() {
       try {
         if (!configured) return;
         const next = new Date(`${date}T12:00:00Z`);
         next.setUTCDate(next.getUTCDate() + 1);
+        // Fetch only the selected day's reserved time ranges for this room.
         const rows = await rpc("get_room_schedule", {
           p_room_id: room.id,
           p_from: toInstant(date, "00:00"),
@@ -423,6 +455,8 @@ function Schedule({ room, date, onClose }) {
     </Modal>
   );
 }
+
+// Manage reservations: look up a booking, check in, cancel, or pick an alternative.
 function Manage({ onClose, onAlternative, onChanged }) {
   const [code, setCode] = useState(""),
     [email, setEmail] = useState(""),
@@ -432,10 +466,12 @@ function Manage({ onClose, onAlternative, onChanged }) {
     [error, setError] = useState(""),
     [note, setNote] = useState(""),
     [confirmCancel, setConfirmCancel] = useState(false);
+  // Normalize the booking code and email for every management request.
   const credentials = () => ({
     p_code: code.trim().toLowerCase(),
     p_email: email.trim().toLowerCase(),
   });
+  // Fetch the latest booking status and alternative rooms if bumped.
   async function refresh() {
     const rows = await rpc("get_booking_status", credentials());
     if (!rows?.length)
@@ -447,6 +483,7 @@ function Manage({ onClose, onAlternative, onChanged }) {
       setAlternatives(options || []);
     }
   }
+  // Look up a reservation using the form credentials.
   async function lookup(e) {
     e.preventDefault();
     setPending(true);
@@ -463,6 +500,8 @@ function Manage({ onClose, onAlternative, onChanged }) {
       setPending(false);
     }
   }
+
+  // Perform a server-side booking action, then refresh visible booking data.
   async function action(kind) {
     setPending(true);
     setError("");
@@ -487,6 +526,8 @@ function Manage({ onClose, onAlternative, onChanged }) {
       setPending(false);
     }
   }
+
+  // Check-in becomes available only once the reservation start time has passed.
   const started = booking && Date.now() >= Date.parse(booking.start_time);
   return (
     <Modal
@@ -651,15 +692,19 @@ function Manage({ onClose, onAlternative, onChanged }) {
   );
 }
 
+// Study Space chatbot: sends message history to the Supabase Edge Function.
 function Chatbot({ onSelectRoom }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
-  const [roomResults, setRoomResults] = useState([])
-  const [bookingDetails, setBookingDetails] = useState(null)
+
+  // Structured room matches returned by the chatbot can be selected for booking.
+  const [roomResults, setRoomResults] = useState([]);
+  const [bookingDetails, setBookingDetails] = useState(null);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Submit the conversation and display the assistant response and any room matches.
   async function sendMessage(e) {
     e.preventDefault();
 
@@ -678,6 +723,7 @@ function Chatbot({ onSelectRoom }) {
         throw new Error("Supabase is not configured.");
       }
 
+      // Send the conversation to the Supabase chatbot Edge Function.
       const { data, error: functionError } = await supabase.functions.invoke(
         "chatbot",
         {
@@ -689,8 +735,8 @@ function Chatbot({ onSelectRoom }) {
 
       if (functionError) throw functionError;
 
-      setRoomResults(data.rooms || [])
-      setBookingDetails(data.booking || null)
+      setRoomResults(data.rooms || []);
+      setBookingDetails(data.booking || null);
 
       setMessages([
         ...nextMessages,
@@ -752,9 +798,9 @@ function Chatbot({ onSelectRoom }) {
                     <button
                       type="button"
                       onClick={() => {
-                      setOpen(false);
-                      onSelectRoom(room, bookingDetails);
-                    }}
+                        setOpen(false);
+                        onSelectRoom(room, bookingDetails);
+                      }}
                     >
                       Select
                     </button>
@@ -794,6 +840,7 @@ function Chatbot({ onSelectRoom }) {
   );
 }
 
+// Main page: coordinates locations, search, booking dialogs, and site sections.
 export default function App() {
   const [locations, setLocations] = useState(configured ? [] : demoLocations),
     [organizations, setOrganizations] = useState([]),
@@ -809,12 +856,16 @@ export default function App() {
     [visible, setVisible] = useState(6),
     [notice, setNotice] = useState("");
 
+  // Selected library for the detailed explorer; null shows the photo gallery.
   const [exploring, setExploring] = useState(null);
 
+  // Keep a reference to the finder section and a counter to ignore stale search responses.
   const finder = useRef(null),
     request = useRef(0);
   useEffect(() => {
     let active = true;
+
+    // Initialize campus locations and organization choices from Supabase.
     async function boot() {
       if (!configured) return;
       try {
@@ -843,6 +894,7 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
+    // Reveal elements when they first enter the viewport; clean up the observer on unmount.
     const obs = new IntersectionObserver(
       (entries) =>
         entries.forEach((e) => {
@@ -856,11 +908,17 @@ export default function App() {
     document.querySelectorAll(".reveal").forEach((el) => obs.observe(el));
     return () => obs.disconnect();
   }, []);
+
+  // Update a single field in the main room-finder form.
   function update(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
   }
+
+  // Search available rooms from Supabase (or local demo data in preview mode).
   async function search(e) {
     e?.preventDefault();
+
+    // Every search gets an ID so slow earlier requests cannot overwrite newer results.
     const id = ++request.current;
     setLoading(true);
     setError("");
@@ -869,9 +927,13 @@ export default function App() {
     setResults([]);
     setSearched(null);
     try {
+
+      // Capture the form values used for this request to keep displayed results consistent.
       const snapshot = { ...form };
       if (!snapshot.location) throw new Error("Choose a library.");
       const win = searchWindow(snapshot);
+
+      // Use real availability when configured; otherwise show example rooms for design preview.
       const rows = configured
         ? await rpc("get_available_rooms", {
             p_location_id: Number(snapshot.location),
@@ -891,6 +953,8 @@ export default function App() {
       if (id === request.current) setLoading(false);
     }
   }
+
+  // Clear old search results after a booking change so availability is rechecked.
   function changed() {
     setResults([]);
     setSearched(null);
@@ -898,6 +962,8 @@ export default function App() {
       "Your reservation changed. Search again for the latest availability.",
     );
   }
+
+  // Convert a replacement-room suggestion into a new booking selection.
   function chooseAlternative(a, b) {
     setManage(false);
     setSelection({
@@ -915,17 +981,21 @@ export default function App() {
       "Choose your booking type when reserving an alternative. Organization groups need their access code.",
     );
   }
+
+  // Scroll the visitor to the room finder from the hero button.
   function jump() {
     finder.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   useEffect(() => {
-  if (exploring) {
-    document.getElementById("library-explorer")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }
-}, [exploring]);
+    // Scroll to the selected library explorer when the photo gallery changes views.
+    if (exploring) {
+      document.getElementById("library-explorer")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [exploring]);
+  // Resolve the library name for the current or most recent search.
   const selectedLoc = locations.find(
     (l) => String(l.id) === String(searched?.search.location || form.location),
   );
@@ -946,6 +1016,7 @@ export default function App() {
         <span className="nav-note">A CAMPUS SIDE PROJECT</span>
       </header>
       <main id="home">
+        {/* Landing-page hero and decorative room artwork. */}
         <section className="hero">
           <div className="hero-copy">
             <div className="eyebrow">
@@ -1005,6 +1076,8 @@ export default function App() {
             </div>
           </div>
         </section>
+
+        {/* Text marquee displaying the five campus library names. */}
         <section className="campus-strip" aria-label="Campus locations">
           <div className="marquee-viewport">
             <div className="marquee-track">
@@ -1031,6 +1104,7 @@ export default function App() {
             </div>
           </div>
         </section>
+        {/* Room-finder form and availability results. */}
         <section id="finder" className="finder section" ref={finder}>
           <div className="section-heading reveal">
             <div>
@@ -1365,9 +1439,9 @@ export default function App() {
             ))}
           </div>
         </section>
-        
-        
+
         {exploring ? (
+          /* Room explorer for the currently selected library. */
           <LibraryExplorer
             key={exploring.id}
             location={exploring}
@@ -1381,13 +1455,13 @@ export default function App() {
             }}
           />
         ) : (
+
+          /* Photo gallery: selecting a library opens its detailed explorer. */
           <LibraryGallery
             locations={locations}
             onChoose={(location) => setExploring(location)}
           />
         )}
-
-
       </main>
       <footer>
         <Logo />
@@ -1395,6 +1469,8 @@ export default function App() {
         <a href="#home">Back to top ↑</a>
       </footer>
       {selection && (
+
+        /* Booking modal, rendered only after a room has been selected. */
         <Booking
           selection={selection}
           organizations={organizations}
@@ -1404,6 +1480,7 @@ export default function App() {
       )}{" "}
       {schedule && <Schedule {...schedule} onClose={() => setSchedule(null)} />}{" "}
       {manage && (
+        /* Reservation management modal, toggled from navigation. */
         <Manage
           onClose={() => setManage(false)}
           onAlternative={chooseAlternative}
