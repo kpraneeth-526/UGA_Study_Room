@@ -855,3 +855,67 @@ language sql stable security definer set search_path = public as $$
                       o.end_time + make_interval(hours => s.h)))
   order by (s.h <> 0), abs(s.h), r.capacity, r.name;
 $$;
+
+-- ===== 14. Real room numbers from the library floor maps =====
+-- The website's floor maps find rooms by these names. The placeholder rooms
+-- "Group Study Room 01", "02", ... become the numbers printed on UGA's floor maps.
+-- Bookings point at room ids, so existing bookings keep working.
+-- Safe to run twice (the second run changes nothing).
+update rooms r
+set name = 'Group Study Room ' || v.real_number
+from (values
+  -- Miller Learning Center: rooms 01-29 are floor 3, 30-42 floor 2, 43-93 floor 4
+  ('Miller Learning Center', '01', '301'), ('Miller Learning Center', '02', '302'), ('Miller Learning Center', '03', '306'), ('Miller Learning Center', '04', '307'),
+  ('Miller Learning Center', '05', '308'), ('Miller Learning Center', '06', '309'), ('Miller Learning Center', '07', '310'), ('Miller Learning Center', '08', '311'),
+  ('Miller Learning Center', '09', '312'), ('Miller Learning Center', '10', '313'), ('Miller Learning Center', '11', '316'), ('Miller Learning Center', '12', '317'),
+  ('Miller Learning Center', '13', '318'), ('Miller Learning Center', '14', '320'), ('Miller Learning Center', '15', '321'), ('Miller Learning Center', '16', '322'),
+  ('Miller Learning Center', '17', '323'), ('Miller Learning Center', '18', '324'), ('Miller Learning Center', '19', '325'), ('Miller Learning Center', '20', '326'),
+  ('Miller Learning Center', '21', '341'), ('Miller Learning Center', '22', '343'), ('Miller Learning Center', '23', '345'), ('Miller Learning Center', '24', '351'),
+  ('Miller Learning Center', '25', '353'), ('Miller Learning Center', '26', '355'), ('Miller Learning Center', '27', '375'), ('Miller Learning Center', '28', '376'),
+  ('Miller Learning Center', '29', '377'),
+  ('Miller Learning Center', '30', '201'), ('Miller Learning Center', '31', '202'), ('Miller Learning Center', '32', '203'), ('Miller Learning Center', '33', '208'),
+  ('Miller Learning Center', '34', '209'), ('Miller Learning Center', '35', '212'), ('Miller Learning Center', '36', '270'), ('Miller Learning Center', '37', '271'),
+  ('Miller Learning Center', '38', '272'), ('Miller Learning Center', '39', '273'), ('Miller Learning Center', '40', '279'), ('Miller Learning Center', '41', '280'),
+  ('Miller Learning Center', '42', '281'),
+  ('Miller Learning Center', '43', '401'), ('Miller Learning Center', '44', '402'), ('Miller Learning Center', '45', '403'), ('Miller Learning Center', '46', '404'),
+  ('Miller Learning Center', '47', '405'), ('Miller Learning Center', '48', '406'), ('Miller Learning Center', '49', '407'), ('Miller Learning Center', '50', '408'),
+  ('Miller Learning Center', '51', '409'), ('Miller Learning Center', '52', '410'), ('Miller Learning Center', '53', '411'), ('Miller Learning Center', '54', '412'),
+  ('Miller Learning Center', '55', '413'), ('Miller Learning Center', '56', '414'), ('Miller Learning Center', '57', '415'), ('Miller Learning Center', '58', '416'),
+  ('Miller Learning Center', '59', '418'), ('Miller Learning Center', '60', '441'), ('Miller Learning Center', '61', '442'), ('Miller Learning Center', '62', '443'),
+  ('Miller Learning Center', '63', '444'), ('Miller Learning Center', '64', '445'), ('Miller Learning Center', '65', '446'), ('Miller Learning Center', '66', '451'),
+  ('Miller Learning Center', '67', '452'), ('Miller Learning Center', '68', '453'), ('Miller Learning Center', '69', '454'), ('Miller Learning Center', '70', '455'),
+  ('Miller Learning Center', '71', '456'), ('Miller Learning Center', '72', '466'), ('Miller Learning Center', '73', '467'), ('Miller Learning Center', '74', '468'),
+  ('Miller Learning Center', '75', '469'), ('Miller Learning Center', '76', '470'), ('Miller Learning Center', '77', '471'), ('Miller Learning Center', '78', '472'),
+  ('Miller Learning Center', '79', '473'), ('Miller Learning Center', '80', '474'), ('Miller Learning Center', '81', '475'), ('Miller Learning Center', '82', '476'),
+  ('Miller Learning Center', '83', '477'), ('Miller Learning Center', '84', '478'), ('Miller Learning Center', '85', '479'), ('Miller Learning Center', '86', '480'),
+  ('Miller Learning Center', '87', '481'), ('Miller Learning Center', '88', '482'), ('Miller Learning Center', '89', '483'), ('Miller Learning Center', '90', '484'),
+  ('Miller Learning Center', '91', '485'), ('Miller Learning Center', '92', '486'), ('Miller Learning Center', '93', '487'),
+  -- Main Library floor 1 (134A, 163A and Barr Seminar Room already have real names)
+  ('Main Library', '01', '132'), ('Main Library', '02', '133'), ('Main Library', '03', '141'), ('Main Library', '04', '142'),
+  ('Main Library', '05', '143'), ('Main Library', '06', '144'), ('Main Library', '07', '145'), ('Main Library', '08', '146'),
+  ('Main Library', '09', '147'), ('Main Library', '10', '161'), ('Main Library', '11', '162'), ('Main Library', '12', '171'),
+  ('Main Library', '13', '172'), ('Main Library', '14', '173'), ('Main Library', '15', '174'), ('Main Library', '16', '175'),
+  ('Main Library', '17', '176'), ('Main Library', '18', '177'), ('Main Library', '19', '178'), ('Main Library', '20', '181'),
+  ('Main Library', '21', '182'), ('Main Library', '22', '183'), ('Main Library', '23', '184'), ('Main Library', '24', '185'),
+  ('Main Library', '25', '186'), ('Main Library', '26', '187'),
+  -- McBay Science Library floor 4 (Room 402 keeps its name)
+  ('McBay Science Library', '01', '441A'), ('McBay Science Library', '02', '441B'), ('McBay Science Library', '03', '441C'), ('McBay Science Library', '04', '441D'),
+  ('McBay Science Library', '05', '441E'), ('McBay Science Library', '06', '441F'), ('McBay Science Library', '07', '441G'), ('McBay Science Library', '08', '441H'),
+  ('McBay Science Library', '09', '441J'), ('McBay Science Library', '10', '441K'), ('McBay Science Library', '11', '441L'), ('McBay Science Library', '12', '441M'),
+  ('McBay Science Library', '13', '442A'), ('McBay Science Library', '14', '442B'), ('McBay Science Library', '15', '442C'), ('McBay Science Library', '16', '442D'),
+  ('McBay Science Library', '17', '442E'), ('McBay Science Library', '18', '442F'), ('McBay Science Library', '19', '442G'), ('McBay Science Library', '20', '442H'),
+  ('McBay Science Library', '21', '442J'), ('McBay Science Library', '22', '442K'), ('McBay Science Library', '23', '442L'), ('McBay Science Library', '24', '442M'),
+  ('McBay Science Library', '25', '442N')
+) as v(library, old_number, real_number)
+join locations l on l.name = v.library
+where r.location_id = l.id
+  and r.name = 'Group Study Room ' || v.old_number;
+
+-- The Miller maps show 93 study rooms but 95 were loaded. Remove the 2 extras
+-- unless someone has booked them (deleting a room would delete its bookings).
+delete from rooms r
+using locations l
+where r.location_id = l.id
+  and l.name = 'Miller Learning Center'
+  and r.name in ('Group Study Room 94', 'Group Study Room 95')
+  and not exists (select 1 from bookings b where b.room_id = r.id);

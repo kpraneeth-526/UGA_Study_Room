@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { rpc } from './supabase';
 import RoomIllustration from "./RoomIllustration";
+import { FloorMaps } from './FloorMap';
+import { FLOOR_MAPS, roomNumber } from './floorMaps';
 import { dateKey, initialSearch, searchWindow, prettyTime } from './time';
 import './library-explorer.css';
 
@@ -8,7 +10,7 @@ const DURATIONS = [15, 30, 45, 60, 75, 90, 105, 120];
 
 export default function LibraryExplorer({ location, onBack, onReserve }) {
   const [filters, setFilters] = useState(() => ({
-    ...initialSearch,
+    ...initialSearch(),
     location: String(location.id),
     type: 'student',
   }));
@@ -17,23 +19,31 @@ export default function LibraryExplorer({ location, onBack, onReserve }) {
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const latestRequest = useRef(0);
+  const floors = FLOOR_MAPS[location.name] || [];
+  const [view, setView] = useState('map');
+  const showMap = floors.length > 0 && view === 'map';
+
+  function reserve(room) {
+    onReserve(room, window, {
+      ...filters,
+      location: String(location.id),
+      type: 'student',
+    });
+  }
 
   function update(field, value) {
     setFilters((prev) => ({ ...prev, [field]: value }));
-    setSearched(false);
-    setRooms([]);
-    setWindow(null);
   }
 
-  async function findRooms(event) {
-    event.preventDefault();
+  // Old results stay on screen while a new search runs; a slower, older
+  // response is ignored so it can't overwrite a newer one.
+  async function findRooms(query) {
+    const request = ++latestRequest.current;
     setLoading(true);
     setError('');
-    setRooms([]);
-    setSearched(false);
 
     try {
-      const query = { ...filters, location: String(location.id) };
       const selectedWindow = searchWindow(query);
       const data = await rpc('get_available_rooms', {
         p_location_id: Number(location.id),
@@ -42,15 +52,26 @@ export default function LibraryExplorer({ location, onBack, onReserve }) {
         p_group_size: Number(query.people),
         p_booking_type: 'student',
       });
+      if (request !== latestRequest.current) return;
       setWindow(selectedWindow);
       setRooms(data || []);
       setSearched(true);
     } catch (err) {
+      if (request !== latestRequest.current) return;
       setError(err.message || 'Unable to load rooms. Please try again.');
+      setRooms([]);
+      setSearched(false);
     } finally {
-      setLoading(false);
+      if (request === latestRequest.current) setLoading(false);
     }
   }
+
+  // check availability when the page opens and shortly after any filter changes
+  useEffect(() => {
+    const timer = setTimeout(() => findRooms(filters), 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, location.id]);
 
   return (
     <section className="library-explorer section" id="library-explorer" aria-labelledby="explorer-title">
@@ -68,7 +89,10 @@ export default function LibraryExplorer({ location, onBack, onReserve }) {
         <div className="explorer-mark" aria-hidden="true">✳</div>
       </div>
 
-      <form className="explorer-filters" onSubmit={findRooms}>
+      <form className="explorer-filters" onSubmit={(event) => {
+        event.preventDefault();
+        findRooms(filters);
+      }}>
         <label>
           <span>Date</span>
           <input type="date" required value={filters.date} min={dateKey()}
@@ -100,25 +124,37 @@ export default function LibraryExplorer({ location, onBack, onReserve }) {
     </form>
 
     <div className="explorer-results">
+      {floors.length > 0 && (
+        <div className="explorer-view-toggle" role="group" aria-label="Find rooms by">
+          <button type="button" aria-pressed={view === 'map'} onClick={() => setView('map')}>Floor map</button>
+          <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>Room search</button>
+        </div>
+      )}
+
       {error && (
         <p role="alert" className="explorer-error">
           {error}
         </p>
       )}
 
-      {!searched && !loading && !error && (
+      {showMap && (
+        <FloorMaps key={location.name} floors={floors} rooms={searched ? rooms : null}
+          window={window} loading={loading} onReserve={reserve} />
+      )}
+
+      {!showMap && !searched && !loading && !error && (
         <p className="explorer-empty">
           Choose your date and time to discover available study rooms.
         </p>
       )}
 
-      {loading && (
+      {!showMap && loading && !searched && (
         <p className="explorer-empty">
           Finding available rooms...
         </p>
       )}
 
-      {searched && (
+      {!showMap && searched && (
         <>
           <div className="explorer-results-heading">
             <h3>Available rooms</h3>
@@ -139,7 +175,7 @@ export default function LibraryExplorer({ location, onBack, onReserve }) {
                         <RoomIllustration variant={index} />
 
                         <span className="explorer-room-number">
-                            ROOM {String(index + 1).padStart(2, "0")}
+                            {/^\d/.test(roomNumber(room.name)) ? `ROOM ${roomNumber(room.name)}` : room.name}
                         </span>
                     </div>
 
@@ -157,13 +193,7 @@ export default function LibraryExplorer({ location, onBack, onReserve }) {
                     <button
                       type="button"
                       className="explorer-reserve"
-                      onClick={() =>
-                        onReserve(room, window, {
-                          ...filters,
-                          location: String(location.id),
-                          type: "student",
-                        })
-                      }
+                      onClick={() => reserve(room)}
                     >
                       Reserve this room ↗
                     </button>

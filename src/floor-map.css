@@ -1,0 +1,205 @@
+/* ============================================================================
+   FLOOR MAP
+   A library floor plan with a clickable box over each study room.
+   Green = free for the searched time, red = not available.
+   Colors match the Library Explorer cream/burgundy theme.
+   ============================================================================ */
+
+.floor-map {
+  margin-top: 28px;
+}
+
+/* Floor name on the left, free-room count on the right. */
+.floor-map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.floor-map-header h3 {
+  font-family: Georgia, serif;
+  font-size: 1.6rem;
+  margin: 0;
+}
+
+.floor-map-header p {
+  margin: 0;
+  color: #805f53;
+}
+
+.floor-map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+  font-size: 14px;
+  color: #805f53;
+}
+
+.floor-map-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.swatch.free { background: #2e9e5b; }
+.swatch.busy { background: #c2413b; }
+
+/* The map scales with the page; the tooltip is positioned in percentages. */
+.floor-map-canvas {
+  position: relative;
+  background: #fff;
+  border: 1px solid #ead9c6;
+  border-radius: 16px;
+  padding: 10px;
+}
+
+.floor-map-canvas svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Room boxes. Before a search they stay clear and only outline on hover. */
+.floor-room {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 3;
+  cursor: default;
+  transition: fill 0.15s ease, stroke 0.15s ease;
+}
+
+.floor-room:focus {
+  outline: none;
+}
+
+.floor-room.idle.hovered {
+  stroke: #6f1d1b;
+}
+
+.floor-room.free {
+  fill: rgba(46, 158, 91, 0.6);
+  cursor: pointer;
+}
+
+.floor-room.free.hovered {
+  fill: rgba(46, 158, 91, 0.85);
+  stroke: #14532d;
+}
+
+.floor-room.busy {
+  fill: rgba(194, 65, 59, 0.45);
+}
+
+.floor-room.busy.hovered {
+  stroke: #7f1d1d;
+}
+
+.floor-map-tip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 10px));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 170px;
+  padding: 10px 12px;
+  background: #432818;
+  color: #fff9ef;
+  border-radius: 10px;
+  font-size: 13px;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(67, 40, 24, 0.25);
+  z-index: 2;
+}
+
+.floor-map-tip.below {
+  transform: translate(-50%, 10px);
+}
+
+.floor-map-tip strong {
+  font-size: 15px;
+}
+
+.floor-map-tip em {
+  font-style: normal;
+  color: #9be3b4;
+  margin-top: 4px;
+}
+
+/* Map / list switch above the results. */
+.explorer-view-toggle {
+  display: inline-flex;
+  border: 1px solid #ead9c6;
+  border-radius: 999px;
+  padding: 3px;
+  margin-top: 12px;
+}
+
+.explorer-view-toggle button {
+  border: 0;
+  background: none;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  color: #805f53;
+  cursor: pointer;
+}
+
+.explorer-view-toggle button[aria-pressed="true"] {
+  background: #6f1d1b;
+  color: #fff9ef;
+}
+
+/* Floor buttons above the map, each with its free-room count. */
+.floor-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.floor-tabs button {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  border: 1px solid #ead9c6;
+  background: #fff;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  color: #432818;
+  cursor: pointer;
+}
+
+.floor-tabs button span {
+  font-size: 12px;
+  color: #2e7d4f;
+}
+
+.floor-tabs button[aria-pressed="true"] {
+  background: #432818;
+  border-color: #432818;
+  color: #fff9ef;
+}
+
+.floor-tabs button[aria-pressed="true"] span {
+  color: #9be3b4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floor-room {
+    transition: none;
+  }
+}

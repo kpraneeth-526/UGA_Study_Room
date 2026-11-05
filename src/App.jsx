@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import LibraryGallery from "./LibraryGallery";
 import LibraryExplorer from "./LibraryExplorer";
+import { FloorMaps } from "./FloorMap";
+import { FLOOR_MAPS } from "./floorMaps";
 import { configured, getLocations, rpc, supabase } from "./supabase";
 import { demoLocations, demoRooms } from "./demo";
 
@@ -854,7 +856,8 @@ export default function App() {
     [schedule, setSchedule] = useState(null),
     [manage, setManage] = useState(false),
     [visible, setVisible] = useState(6),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [finderView, setFinderView] = useState("map");
 
   // Selected library for the detailed explorer; null shows the photo gallery.
   const [exploring, setExploring] = useState(null);
@@ -999,6 +1002,9 @@ export default function App() {
   const selectedLoc = locations.find(
     (l) => String(l.id) === String(searched?.search.location || form.location),
   );
+  // Floor plans for the searched library; libraries without one only show room cards.
+  const floors = (searched && FLOOR_MAPS[selectedLoc?.name]) || [];
+  const showMap = floors.length > 0 && finderView === "map";
   return (
     <>
       <a className="skip-link" href="#finder">
@@ -1279,7 +1285,37 @@ export default function App() {
                   Smallest fit first <Icon name="people" size={16} />
                 </span>
               </div>
-              {!results.length ? (
+              {floors.length > 0 && (
+                <div
+                  className="explorer-view-toggle"
+                  role="group"
+                  aria-label="Find rooms by"
+                >
+                  <button
+                    type="button"
+                    aria-pressed={finderView === "map"}
+                    onClick={() => setFinderView("map")}
+                  >
+                    Floor map
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={finderView === "list"}
+                    onClick={() => setFinderView("list")}
+                  >
+                    Room search
+                  </button>
+                </div>
+              )}
+              {showMap ? (
+                <FloorMaps
+                  key={selectedLoc?.name}
+                  floors={floors}
+                  rooms={results}
+                  window={searched.window}
+                  onReserve={(room) => setSelection({ room, ...searched })}
+                />
+              ) : !results.length ? (
                 <div className="empty">
                   <h3>A different time might do it.</h3>
                   <p>
@@ -1340,7 +1376,7 @@ export default function App() {
                   ))}
                 </div>
               )}
-              {results.length > visible && (
+              {!showMap && results.length > visible && (
                 <button
                   className="button secondary load-more"
                   onClick={() => setVisible((v) => v + 6)}
