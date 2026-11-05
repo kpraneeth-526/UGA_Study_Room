@@ -8,7 +8,7 @@ import './library-explorer.css';
 
 const DURATIONS = [15, 30, 45, 60, 75, 90, 105, 120];
 
-export default function LibraryExplorer({ location, onBack, onReserve }) {
+export default function LibraryExplorer({ location, onBack, onReserve, onManage }) {
   const [filters, setFilters] = useState(() => ({
     ...initialSearch(),
     location: String(location.id),
@@ -77,7 +77,10 @@ export default function LibraryExplorer({ location, onBack, onReserve }) {
     <section className="library-explorer section" id="library-explorer" aria-labelledby="explorer-title">
       <div className="explorer-topline">
         <button className="explorer-back" type="button" onClick={onBack}>← All libraries</button>
-        <span>STUDY SPACE / LIBRARY EXPLORER</span>
+        <div className="explorer-topline-right">
+          <span>STUDY SPACE / LIBRARY EXPLORER</span>
+          <button className="explorer-manage" type="button" onClick={onManage}>My booking ↗</button>
+        </div>
       </div>
 
       <div className="explorer-heading">

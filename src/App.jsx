@@ -200,7 +200,7 @@ const Message = ({ children, good = false }) =>
   ) : null;
 
 // Booking dialog: collects user details and submits a reservation via Supabase RPC.
-function Booking({ selection, organizations, onClose, onBooked }) {
+function Booking({ selection, organizations, onClose, onBooked, onCheck }) {
   const { room, window: win, search } = selection;
   const [name, setName] = useState(""),
     [email, setEmail] = useState(""),
@@ -263,7 +263,7 @@ function Booking({ selection, organizations, onClose, onBooked }) {
           </p>
         </div>
       </div>
-      // After booking succeeds, replace the form with the confirmation details.
+      {/* After booking succeeds, replace the form with the confirmation details. */}
       {confirmation ? (
         <>
           <div className="confirmation">
@@ -281,6 +281,14 @@ function Booking({ selection, organizations, onClose, onBooked }) {
           </p>
           <button className="button full" onClick={onClose}>
             All set <Icon name="check" />
+          </button>
+          <button
+            className="button secondary full"
+            onClick={() =>
+              onCheck({ code: confirmation, email: email.trim().toLowerCase() })
+            }
+          >
+            Check my booking <Icon name="up" />
           </button>
         </>
       ) : (
@@ -459,9 +467,10 @@ function Schedule({ room, date, onClose }) {
 }
 
 // Manage reservations: look up a booking, check in, cancel, or pick an alternative.
-function Manage({ onClose, onAlternative, onChanged }) {
-  const [code, setCode] = useState(""),
-    [email, setEmail] = useState(""),
+// `initial` (code and email) opens straight to that booking, e.g. right after reserving.
+function Manage({ initial, onClose, onAlternative, onChanged }) {
+  const [code, setCode] = useState(initial?.code || ""),
+    [email, setEmail] = useState(initial?.email || ""),
     [booking, setBooking] = useState(null),
     [alternatives, setAlternatives] = useState([]),
     [pending, setPending] = useState(false),
@@ -487,7 +496,7 @@ function Manage({ onClose, onAlternative, onChanged }) {
   }
   // Look up a reservation using the form credentials.
   async function lookup(e) {
-    e.preventDefault();
+    e?.preventDefault();
     setPending(true);
     setError("");
     setNote("");
@@ -502,6 +511,11 @@ function Manage({ onClose, onAlternative, onChanged }) {
       setPending(false);
     }
   }
+  // Opened with a code and email already filled in: look the booking up right away.
+  useEffect(() => {
+    if (initial) lookup();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Perform a server-side booking action, then refresh visible booking data.
   async function action(kind) {
@@ -1482,6 +1496,7 @@ export default function App() {
             key={exploring.id}
             location={exploring}
             onBack={() => setExploring(null)}
+            onManage={() => setManage(true)}
             onReserve={(room, window, search) => {
               setSelection({
                 room,
@@ -1512,12 +1527,17 @@ export default function App() {
           organizations={organizations}
           onClose={() => setSelection(null)}
           onBooked={changed}
+          onCheck={(credentials) => {
+            setSelection(null);
+            setManage(credentials);
+          }}
         />
       )}{" "}
       {schedule && <Schedule {...schedule} onClose={() => setSchedule(null)} />}{" "}
       {manage && (
         /* Reservation management modal, toggled from navigation. */
         <Manage
+          initial={manage === true ? null : manage}
           onClose={() => setManage(false)}
           onAlternative={chooseAlternative}
           onChanged={changed}
