@@ -1,0 +1,365 @@
+/* ============================================================================
+   LIBRARY EXPLORER
+   A library-specific room search and results page.
+   Colors and typography match the Study Space cream/burgundy theme.
+   Room availability and booking behavior live in LibraryExplorer.jsx, not CSS.
+   ============================================================================ */
+
+/* Page shell: generous desktop spacing and at least one screen of height. */
+.library-explorer {
+  background: #fff9ef;
+  color: #432818;
+  padding: clamp(28px, 5vw, 76px);
+  min-height: 100svh;
+  box-sizing: border-box;
+}
+
+/* Navigation row: back button on the left, page label on the right. */
+.explorer-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: #805f53;
+}
+
+.explorer-back {
+  background: none;
+  border: 0;
+  color: #6f1d1b;
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: 0;
+  font-size: 14px;
+  padding: 6px 0;
+}
+
+/* Library title and description. The decorative mark sits to the right. */
+.explorer-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin: 34px 0;
+}
+
+.explorer-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: #935e46;
+  font-weight: 700;
+}
+
+.explorer-heading h2 {
+  font-size: clamp(2.7rem, 6vw, 6rem);
+  letter-spacing: -0.055em;
+  line-height: 1.05;
+  margin: 12px 0;
+  font-family: Georgia, serif;
+  font-weight: 400;
+}
+
+.explorer-heading p {
+  max-width: 520px;
+  color: #795c50;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.explorer-dot {
+  color: #ae735e;
+}
+
+.explorer-mark {
+  font-size: clamp(80px, 12vw, 180px);
+  line-height: 1;
+  color: #b98c70;
+}
+
+/* Search filters: date, time, duration, people, and submit button. */
+.explorer-filters {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.95fr 0.7fr auto;
+  gap: 12px;
+  align-items: end;
+  background: #f1e6d9;
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 36px;
+}
+
+.explorer-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6a4b40;
+}
+
+.explorer-filters input,
+.explorer-filters select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 44px;
+  background: #fffaf3;
+  color: #432818;
+  border: 1px solid #decaba;
+  border-radius: 8px;
+  padding: 8px;
+  font: inherit;
+}
+
+/* Shared button baseline; the room reservation button gets extra styles below. */
+.explorer-search,
+.explorer-room-info button {
+  background: #6f1d1b;
+  color: #fff8ed;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 12px 16px;
+  min-height: 44px;
+}
+
+.explorer-search:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* Results area is centered and limited in width on large monitors. */
+.explorer-results {
+  width: 100%;
+  max-width: 1200px;
+  margin: 48px auto 0;
+}
+
+.explorer-results-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 25px;
+}
+
+.explorer-results-heading h3 {
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  font-family: Georgia, serif;
+  font-weight: 400;
+  line-height: 1.1;
+  margin: 0;
+}
+
+/* Supports either a <span> or <p> for the result count. */
+.explorer-results-heading > span {
+  font-size: 13px;
+  color: #805f53;
+}
+
+.explorer-results-heading p {
+  color: #8b786c;
+  font-size: 0.85rem;
+}
+
+/* Two-column room gallery; cards become one column on small screens. */
+.explorer-room-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: stretch;
+}
+
+.explorer-room-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fffcf7;
+  border: 1px solid #e5d9cb;
+  border-radius: 22px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.explorer-room-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 40px rgba(67, 40, 24, 0.09);
+}
+
+/* Illustration frame: each room displays the SVG from RoomIllustration.jsx. */
+.explorer-room-visual {
+  position: relative;
+  display: block;
+  padding: 0;
+  min-height: 0;
+  aspect-ratio: 5 / 3;
+  overflow: hidden;
+  background: #e9d8bd;
+  color: #6f1d1b;
+  border-bottom: 1px solid #e0d3c4;
+}
+
+.room-illustration {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.45s ease;
+}
+
+/* A subtle zoom gives the otherwise static drawings some feedback on hover. */
+.explorer-room-card:hover .room-illustration {
+  transform: scale(1.045);
+}
+
+/* Number badge sits on top of the illustrated room, not in document flow. */
+.explorer-room-number,
+.explorer-room-visual .explorer-room-number:last-child {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  left: auto;
+  bottom: auto;
+  padding: 7px 12px;
+  border-radius: 100px;
+  background: #fffaf2;
+  color: #6f1d1b;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+/* Room name, capacity, selected time, and booking button stack vertically. */
+.explorer-room-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 24px;
+}
+
+.explorer-room-info h4 {
+  margin: 0 0 5px;
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  line-height: 1.2;
+  font-weight: 600;
+  color: #432818;
+}
+
+.explorer-room-info p {
+  margin: 0;
+  color: #806b60;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Reserve action: visually prominent and full width of the card content. */
+.explorer-reserve {
+  width: 100%;
+  margin-top: 14px;
+  padding: 15px 20px;
+  border: none;
+  border-radius: 12px;
+  background: #6f1d1b;
+  color: #fffaf2;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.explorer-reserve:hover {
+  background: #501312;
+}
+
+/* Empty-state message, errors, and optional note below results. */
+.explorer-empty {
+  border: 1px dashed #cbb9a7;
+  background: #f7eee2;
+  color: #74584b;
+  border-radius: 14px;
+  padding: 36px 24px;
+  text-align: center;
+}
+
+.explorer-error {
+  color: #9e1e1e;
+}
+
+.explorer-footnote {
+  font-size: 11px;
+  color: #987967;
+  margin: 20px 0 0;
+}
+
+/* Tablet: put search fields into two columns with a full-width submit button. */
+@media (max-width: 1000px) {
+  .explorer-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .explorer-search {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Narrow displays: one room per row, smaller padding, fewer decorations. */
+@media (max-width: 700px) {
+  .explorer-room-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .explorer-room-info {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 650px) {
+  .library-explorer {
+    padding: 24px 16px;
+  }
+
+  .explorer-topline > span {
+    display: none;
+  }
+
+  .explorer-heading {
+    margin: 28px 0;
+  }
+
+  .explorer-mark {
+    display: none;
+  }
+
+  .explorer-filters {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .explorer-results-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* Respect users who prefer less visual movement. */
+@media (prefers-reduced-motion: reduce) {
+  .explorer-room-card,
+  .room-illustration,
+  .explorer-reserve {
+    transition: none;
+  }
+
+  .explorer-room-card:hover,
+  .explorer-room-card:hover .room-illustration {
+    transform: none;
+  }
+}
