@@ -6,6 +6,9 @@
 //   WEBHOOK_SECRET  - any random string; the webhook sends it in the x-webhook-secret header
 //   DEMO_EMAIL      - optional; when set, every email goes here instead of the real recipient
 //                     (Resend without a verified domain only delivers to the account owner)
+//   SITE_URL        - optional; the website's address (e.g. http://localhost:5173 or the
+//                     Vercel URL). When set, booking emails get a link that opens My booking
+//                     with the booking code and email filled in.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const supabase = createClient(
@@ -29,6 +32,22 @@ Deno.serve(async (req) => {
     .maybeSingle()
   if (!note) return new Response('Already sent')
 
+  // confirmation, check-in reminder and bumped emails link straight to the booking
+  let body = note.body
+  const siteUrl = Deno.env.get('SITE_URL')
+  if (siteUrl && ['booked', 'checkin_reminder', 'bumped'].includes(note.kind)) {
+    const { data: booking } = await supabase
+      .from('bookings')
+      .select('booking_code, booker_email')
+      .eq('id', note.booking_id)
+      .maybeSingle()
+    if (booking) {
+      const link = `${siteUrl.replace(/\/+$/, '')}/?booking=${encodeURIComponent(booking.booking_code)}` +
+        `&email=${encodeURIComponent(booking.booker_email)}`
+      body += `\n\nCheck in or manage your booking: ${link}`
+    }
+  }
+
   const demoTo = Deno.env.get('DEMO_EMAIL')
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -40,7 +59,7 @@ Deno.serve(async (req) => {
       from: 'UGA Study Rooms <onboarding@resend.dev>',
       to: demoTo || note.to_email,
       subject: note.subject,
-      text: demoTo ? `(Demo: meant for ${note.to_email})\n\n${note.body}` : note.body,
+      text: demoTo ? `(Demo: meant for ${note.to_email})\n\n${body}` : body,
     }),
   })
 

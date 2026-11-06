@@ -919,3 +919,37 @@ where r.location_id = l.id
   and l.name = 'Miller Learning Center'
   and r.name in ('Group Study Room 94', 'Group Study Room 95')
   and not exists (select 1 from bookings b where b.room_id = r.id);
+
+-- ===== 15. Booking confirmation email =====
+-- "you're booked" email as soon as a booking is created (sent by the send-bump-email
+-- webhook, like the other emails). Covers student, club and replacement bookings.
+create or replace function queue_booking_confirmation()
+returns trigger
+language plpgsql security definer set search_path = public as $$
+declare v_room text; v_library text;
+begin
+  select r.name, l.name into v_room, v_library
+  from rooms r join locations l on l.id = r.location_id
+  where r.id = new.room_id;
+  insert into notifications (booking_id, kind, to_email, subject, body)
+  values (
+    new.id, 'booked', new.booker_email,
+    'Your study room is booked: ' || v_room,
+    'Hi ' || new.booker_name || ', your study room is booked!' || chr(10) || chr(10) ||
+    'Room: ' || v_room || ', ' || v_library || chr(10) ||
+    'When: ' || to_char(new.start_time at time zone 'America/New_York', 'Dy Mon DD, FMHH12:MI AM') ||
+    ' to ' || to_char(new.end_time at time zone 'America/New_York', 'FMHH12:MI AM') || chr(10) ||
+    'Group size: ' || new.group_size || chr(10) ||
+    'Booking code: ' || new.booking_code || chr(10) || chr(10) ||
+    'Check in within 15 minutes of your start time, or the room will be released for other students. ' ||
+    'To check in or cancel, open My booking on the website and enter your booking code and this email.'
+  );
+  return new;
+end; $$;
+
+drop trigger if exists booking_confirm_notify on bookings;
+create trigger booking_confirm_notify
+after insert on bookings
+for each row
+when (new.status = 'active')
+execute function queue_booking_confirmation();

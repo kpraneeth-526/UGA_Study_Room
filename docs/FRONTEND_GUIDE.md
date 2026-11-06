@@ -206,7 +206,8 @@ All of these come back in `error.message`. You don't need to recreate the checks
 
 ## Automatic emails (nothing to build)
 
-The backend emails people automatically when their booking is **bumped**, when it **starts**
+The backend emails people automatically when they **book** (a confirmation with the room, time
+and booking code), when their booking is **bumped**, when it **starts**
 (a check-in reminder), and when it's **released**. For the demo, all emails go to one team
 inbox rather than real students.
 

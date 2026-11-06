@@ -856,6 +856,18 @@ function Chatbot({ onSelectRoom }) {
   );
 }
 
+// Email links look like /?booking=a1b2c3&email=you@uga.edu: open My booking with those
+// filled in. The values are removed from the address bar so they don't stay in history.
+function bookingFromLink() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("booking"),
+    email = params.get("email");
+  if (!code || !email) return false;
+  window.history.replaceState(null, "", window.location.pathname);
+  return { code, email };
+}
+const linkedBooking = bookingFromLink();
+
 // Main page: coordinates locations, search, booking dialogs, and site sections.
 export default function App() {
   const [locations, setLocations] = useState(configured ? [] : demoLocations),
@@ -868,7 +880,7 @@ export default function App() {
     [error, setError] = useState(""),
     [selection, setSelection] = useState(null),
     [schedule, setSchedule] = useState(null),
-    [manage, setManage] = useState(false),
+    [manage, setManage] = useState(linkedBooking),
     [visible, setVisible] = useState(6),
     [notice, setNotice] = useState(""),
     [finderView, setFinderView] = useState("map");
