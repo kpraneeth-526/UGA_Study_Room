@@ -66,9 +66,9 @@ function Logo() {
 // Decorative SVG study-room artwork; variant selects a color palette.
 function RoomArt({ variant = 0, hero = false }) {
   const colors = [
-    ["#d6b783", "#fff0ca", "#6f1d1b"],
-    ["#d5b27e", "#ffe6a7", "#99582a"],
-    ["#e4c599", "#fff0ca", "#6f1d1b"],
+    ["#d6b783", "#fff0ca", "#ba0c2f"],
+    ["#d5b27e", "#ffe6a7", "#ba0c2f"],
+    ["#e4c599", "#fff0ca", "#ba0c2f"],
   ][variant % 3];
   return (
     <svg
@@ -1012,7 +1012,6 @@ export default function App() {
             My booking <Icon name="up" size={16} />
           </button>
         </nav>
-        <span className="nav-note">A CAMPUS SIDE PROJECT</span>
       </header>
       <main id="home">
         {/* Landing-page hero and decorative room artwork. */}
@@ -1046,13 +1045,11 @@ export default function App() {
               </span>
             </div>
             <div className="hero-bottom">
-              <span>MADE FOR CAMPUS LIFE</span>
               <span>ATHENS, GA ↗</span>
             </div>
           </div>
           <div className="hero-visual">
             <div className="visual-top">
-              <span>THE STUDY SPACE COLLECTION</span>
             </div>
             <div className="orbit orbit-one" />
             <div className="orbit orbit-two" />
@@ -1110,9 +1107,7 @@ export default function App() {
               </h2>
             </div>
             <p>
-              Bring your people. We’ll help with the place.
-              <br />
-              Choose when, where, and how many.
+              Bring your people, while we find the place.
             </p>
           </div>
           {!configured && (
