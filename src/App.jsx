@@ -57,8 +57,8 @@ function Logo() {
   return (
     <a className="logo" href="#home" aria-label="Study Space home">
       <img className="brand-icon" src="/favicon.svg" alt="" />
-      <span className="logo-study">study</span>
-      <span className="logo-space">space</span>
+      <span className="logo-study">Ruff</span>
+      <span className="logo-space">Rooms</span>
     </a>
   );
 }
@@ -1008,7 +1008,6 @@ export default function App() {
         <Logo />
         <nav aria-label="Main navigation">
           <a href="#finder">Find a space</a>
-          <a href="#how">How it works</a>
           <button onClick={() => setManage(true)}>
             My booking <Icon name="up" size={16} />
           </button>
@@ -1020,7 +1019,6 @@ export default function App() {
         <section className="hero">
           <div className="hero-copy">
             <div className="eyebrow">
-              <span className="dot" /> A LITTLE ROOM TO THINK
             </div>
             <h1>
               Good ideas
@@ -1055,7 +1053,6 @@ export default function App() {
           <div className="hero-visual">
             <div className="visual-top">
               <span>THE STUDY SPACE COLLECTION</span>
-              <span>01 — 05</span>
             </div>
             <div className="orbit orbit-one" />
             <div className="orbit orbit-two" />
@@ -1108,7 +1105,6 @@ export default function App() {
         <section id="finder" className="finder section" ref={finder}>
           <div className="section-heading reveal">
             <div>
-              <div className="eyebrow">01 / FIND YOUR FOCUS</div>
               <h2>
                 A space for <span className="serif">every plan.</span>
               </h2>
@@ -1350,94 +1346,6 @@ export default function App() {
               )}
             </>
           )}
-        </section>
-        <section className="how-section section" id="how">
-          <div className="section-heading reveal">
-            <div>
-              <div className="eyebrow">02 / LESS FRICTION, MORE FOCUS</div>
-              <h2>
-                Settle in.
-                <br />
-                <span className="serif">Get going.</span>
-              </h2>
-            </div>
-            <p>
-              A few simple steps between you
-              <br />
-              and your next productive hour.
-            </p>
-          </div>
-          <div className="steps">
-            <article className="reveal">
-              <span className="step-number">01</span>
-              <Icon name="pin" size={30} />
-              <h3>Find your corner.</h3>
-              <p>
-                Pick a library, a time, and your group size. See the rooms that
-                fit your plans.
-              </p>
-            </article>
-            <article className="reveal">
-              <span className="step-number">02</span>
-              <Icon name="book" size={30} />
-              <h3>Make it yours.</h3>
-              <p>
-                Reserve with your name and email. Keep your booking code
-                close—you’ll need it later.
-              </p>
-            </article>
-            <article className="reveal">
-              <span className="step-number">03</span>
-              <Icon name="check" size={30} />
-              <h3>Show up. Check in.</h3>
-              <p>
-                Check in when your reservation starts. A 15-minute window keeps
-                spaces moving for everyone.
-              </p>
-            </article>
-          </div>
-        </section>
-        <section className="faq-section section reveal">
-          <div>
-            <div className="eyebrow">A FEW THINGS TO KNOW</div>
-            <h2>
-              Good questions.
-              <br />
-              <span className="serif">Simple answers.</span>
-            </h2>
-          </div>
-          <div className="faqs">
-            {[
-              [
-                "How long can I reserve a room?",
-                "Reserve in 15-minute increments for up to two hours, up to 14 days ahead. Each email can have one active reservation per day.",
-              ],
-              [
-                "What if I’m booking for a club?",
-                "Choose your group type when searching. To reserve, select your registered organization and enter its access code. Your organization determines your priority; smaller student-only study rooms stay reserved for students.",
-              ],
-              [
-                "What happens if my booking is bumped?",
-                "An eligible higher-priority group can take a reservation that hasn’t started. Look up your booking to see its status and available alternatives.",
-              ],
-              [
-                "Can I cancel or check in here?",
-                "Yes. Open My booking and enter your booking code and email. Cancel before your reservation starts, or check in when it begins. Unchecked-in bookings may be released after the 15-minute grace period.",
-              ],
-              [
-                "Is this an official UGA reservation service?",
-                "This is an independent student project. Reservations made here belong to this project’s database and do not reserve rooms in UGA’s official booking systems.",
-              ],
-            ].map(([q, a]) => (
-              <details key={q}>
-                <summary>
-                  {q}
-                  <span>+</span>
-                </summary>
-                <p>{a}</p>
-              </details>
-            ))}
-          </div>
         </section>
 
         {exploring ? (

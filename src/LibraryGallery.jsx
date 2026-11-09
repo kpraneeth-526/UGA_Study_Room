@@ -152,7 +152,6 @@ useEffect(() => {
     </div>
   </div>
       <div className="library-gallery-bottom">
-        <span>HOVER TO PAUSE / EXPLORE</span>
         <span>SELECT A LIBRARY TO FIND A ROOM ↗</span>
       </div>
     </section>
