@@ -157,6 +157,14 @@ button {
   border-bottom: 1px solid var(--line);
 
   gap: 20px;
+  /* Pinned to the top while scrolling so My booking is always reachable.
+     The shadow + clip-path stretch the background to the screen edges. */
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--paper);
+  box-shadow: 0 0 0 100vmax var(--paper);
+  clip-path: inset(0 -100vmax);
 }
 
 .logo {

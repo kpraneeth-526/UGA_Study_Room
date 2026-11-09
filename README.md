@@ -27,6 +27,8 @@ Without both environment values, the app deliberately runs a labeled design prev
 
 ## Connect the existing backend
 
+For every backend call, its inputs, booking rules and error messages, see the [Frontend Guide](docs/FRONTEND_GUIDE.md).
+
 The app expects your original schema to already be installed in Supabase. The supplied `backend/schema.sql` is an unmodified reference copy. **Do not blindly rerun it on an existing database: section 9 truncates bookings and other tables.** Nothing in this deliverable has been applied to your Supabase project.
 
 | Frontend flow | Backend operation |

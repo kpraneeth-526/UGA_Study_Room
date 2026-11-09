@@ -25,6 +25,33 @@
   color: #555555;
 }
 
+/* Page label and the My booking button share the right side. */
+.explorer-topline-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+.explorer-manage {
+  border: 1px solid #ead9c6;
+  border-radius: 999px;
+  background: #fff;
+  color: #6f1d1b;
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.explorer-manage:hover {
+  background: #6f1d1b;
+  border-color: #6f1d1b;
+  color: #fff9ef;
+}
+
 .explorer-back {
   background: none;
   border: 0;

@@ -131,9 +131,9 @@ the missing details. If everything is filled in, say what you are searching for.
     p_end: end,
     p_group_size: group_size,
   })
+  // the search explains booking-rule problems itself (e.g. more than 14 days ahead)
   if (error) {
-    console.error(error)
-    return json({ reply: 'Something went wrong searching for rooms. Please try again.', rooms: [], booking: null }, 500)
+    return json({ reply: `${error.message}. Want to try a different time?`, rooms: [], booking: null })
   }
   if (rooms.length === 0) {
     reply = 'No rooms are free for that time and group size. Want to try a different time or library?'

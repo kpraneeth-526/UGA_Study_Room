@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import LibraryGallery from "./LibraryGallery";
 import LibraryExplorer from "./LibraryExplorer";
+import { FloorMaps } from "./FloorMap";
+import DaySchedule, { ViewTabs } from "./DaySchedule";
+import { FLOOR_MAPS } from "./floorMaps";
 import { configured, getLocations, rpc, supabase } from "./supabase";
 import { demoLocations, demoRooms } from "./demo";
 
@@ -198,7 +201,7 @@ const Message = ({ children, good = false }) =>
   ) : null;
 
 // Booking dialog: collects user details and submits a reservation via Supabase RPC.
-function Booking({ selection, organizations, onClose, onBooked }) {
+function Booking({ selection, organizations, onClose, onBooked, onCheck }) {
   const { room, window: win, search } = selection;
   const [name, setName] = useState(""),
     [email, setEmail] = useState(""),
@@ -261,7 +264,7 @@ function Booking({ selection, organizations, onClose, onBooked }) {
           </p>
         </div>
       </div>
-      // After booking succeeds, replace the form with the confirmation details.
+      {/* After booking succeeds, replace the form with the confirmation details. */}
       {confirmation ? (
         <>
           <div className="confirmation">
@@ -279,6 +282,14 @@ function Booking({ selection, organizations, onClose, onBooked }) {
           </p>
           <button className="button full" onClick={onClose}>
             All set <Icon name="check" />
+          </button>
+          <button
+            className="button secondary full"
+            onClick={() =>
+              onCheck({ code: confirmation, email: email.trim().toLowerCase() })
+            }
+          >
+            Check my booking <Icon name="up" />
           </button>
         </>
       ) : (
@@ -457,9 +468,10 @@ function Schedule({ room, date, onClose }) {
 }
 
 // Manage reservations: look up a booking, check in, cancel, or pick an alternative.
-function Manage({ onClose, onAlternative, onChanged }) {
-  const [code, setCode] = useState(""),
-    [email, setEmail] = useState(""),
+// `initial` (code and email) opens straight to that booking, e.g. right after reserving.
+function Manage({ initial, onClose, onAlternative, onChanged }) {
+  const [code, setCode] = useState(initial?.code || ""),
+    [email, setEmail] = useState(initial?.email || ""),
     [booking, setBooking] = useState(null),
     [alternatives, setAlternatives] = useState([]),
     [pending, setPending] = useState(false),
@@ -485,7 +497,7 @@ function Manage({ onClose, onAlternative, onChanged }) {
   }
   // Look up a reservation using the form credentials.
   async function lookup(e) {
-    e.preventDefault();
+    e?.preventDefault();
     setPending(true);
     setError("");
     setNote("");
@@ -500,6 +512,11 @@ function Manage({ onClose, onAlternative, onChanged }) {
       setPending(false);
     }
   }
+  // Opened with a code and email already filled in: look the booking up right away.
+  useEffect(() => {
+    if (initial) lookup();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Perform a server-side booking action, then refresh visible booking data.
   async function action(kind) {
@@ -840,6 +857,18 @@ function Chatbot({ onSelectRoom }) {
   );
 }
 
+// Email links look like /?booking=a1b2c3&email=you@uga.edu: open My booking with those
+// filled in. The values are removed from the address bar so they don't stay in history.
+function bookingFromLink() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("booking"),
+    email = params.get("email");
+  if (!code || !email) return false;
+  window.history.replaceState(null, "", window.location.pathname);
+  return { code, email };
+}
+const linkedBooking = bookingFromLink();
+
 // Main page: coordinates locations, search, booking dialogs, and site sections.
 export default function App() {
   const [locations, setLocations] = useState(configured ? [] : demoLocations),
@@ -852,9 +881,12 @@ export default function App() {
     [error, setError] = useState(""),
     [selection, setSelection] = useState(null),
     [schedule, setSchedule] = useState(null),
-    [manage, setManage] = useState(false),
+    [manage, setManage] = useState(linkedBooking),
     [visible, setVisible] = useState(6),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [finderView, setFinderView] = useState("day"),
+    // bumps after any booking change so open schedules reload
+    [bookingsVersion, setBookingsVersion] = useState(0);
 
   // Selected library for the detailed explorer; null shows the photo gallery.
   const [exploring, setExploring] = useState(null);
@@ -893,6 +925,12 @@ export default function App() {
       active = false;
     };
   }, []);
+  // Show results (the day schedule first) for the form's starting values as soon as
+  // the libraries load, instead of waiting for the first "Find a room" click.
+  useEffect(() => {
+    if (configured && !initLoading && form.location && !searched) search();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initLoading]);
   useEffect(() => {
     // Reveal elements when they first enter the viewport; clean up the observer on unmount.
     const obs = new IntersectionObserver(
@@ -956,6 +994,7 @@ export default function App() {
 
   // Clear old search results after a booking change so availability is rechecked.
   function changed() {
+    setBookingsVersion((v) => v + 1);
     setResults([]);
     setSearched(null);
     setNotice(
@@ -999,6 +1038,15 @@ export default function App() {
   const selectedLoc = locations.find(
     (l) => String(l.id) === String(searched?.search.location || form.location),
   );
+  // Floor plans for the searched library; libraries without one only show room cards.
+  const floors = (searched && FLOOR_MAPS[selectedLoc?.name]) || [];
+  const showDay = finderView === "day";
+  const showMap = floors.length > 0 && finderView === "map";
+  const finderViews = [
+    ["day", "Day schedule"],
+    ...(floors.length ? [["map", "Floor map"]] : []),
+    ["list", "Room search"],
+  ];
   return (
     <>
       <a className="skip-link" href="#finder">
@@ -1269,7 +1317,34 @@ export default function App() {
                   Smallest fit first <Icon name="people" size={16} />
                 </span>
               </div>
-              {!results.length ? (
+              <ViewTabs
+                views={finderViews}
+                value={finderView}
+                onChange={setFinderView}
+              />
+              {showDay ? (
+                <DaySchedule
+                  key={`${searched.search.location} ${searched.search.date} ${searched.search.time}`}
+                  locationId={searched.search.location}
+                  date={searched.search.date}
+                  startTime={searched.search.time}
+                  people={searched.search.people}
+                  type={searched.search.type}
+                  duration={searched.search.duration}
+                  refreshKey={bookingsVersion}
+                  onReserve={(room, win) =>
+                    setSelection({ room, window: win, search: searched.search })
+                  }
+                />
+              ) : showMap ? (
+                <FloorMaps
+                  key={selectedLoc?.name}
+                  floors={floors}
+                  rooms={results}
+                  window={searched.window}
+                  onReserve={(room) => setSelection({ room, ...searched })}
+                />
+              ) : !results.length ? (
                 <div className="empty">
                   <h3>A different time might do it.</h3>
                   <p>
@@ -1330,7 +1405,7 @@ export default function App() {
                   ))}
                 </div>
               )}
-              {results.length > visible && (
+              {!showDay && !showMap && results.length > visible && (
                 <button
                   className="button secondary load-more"
                   onClick={() => setVisible((v) => v + 6)}
@@ -1348,6 +1423,8 @@ export default function App() {
             key={exploring.id}
             location={exploring}
             onBack={() => setExploring(null)}
+            onManage={() => setManage(true)}
+            refreshKey={bookingsVersion}
             onReserve={(room, window, search) => {
               setSelection({
                 room,
@@ -1378,12 +1455,17 @@ export default function App() {
           organizations={organizations}
           onClose={() => setSelection(null)}
           onBooked={changed}
+          onCheck={(credentials) => {
+            setSelection(null);
+            setManage(credentials);
+          }}
         />
       )}{" "}
       {schedule && <Schedule {...schedule} onClose={() => setSchedule(null)} />}{" "}
       {manage && (
         /* Reservation management modal, toggled from navigation. */
         <Manage
+          initial={manage === true ? null : manage}
           onClose={() => setManage(false)}
           onAlternative={chooseAlternative}
           onChanged={changed}

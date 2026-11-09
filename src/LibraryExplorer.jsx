@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { rpc } from './supabase';
 import RoomIllustration from "./RoomIllustration";
+import { FloorMaps } from './FloorMap';
+import DaySchedule, { ViewTabs } from './DaySchedule';
+import { FLOOR_MAPS, roomNumber } from './floorMaps';
 import { dateKey, initialSearch, searchWindow, prettyTime } from './time';
 import './library-explorer.css';
 
 const DURATIONS = [15, 30, 45, 60, 75, 90, 105, 120];
 
-export default function LibraryExplorer({ location, onBack, onReserve }) {
+export default function LibraryExplorer({ location, onBack, onReserve, onManage, refreshKey }) {
   const [filters, setFilters] = useState(() => ({
-    ...initialSearch,
+    ...initialSearch(),
     location: String(location.id),
     type: 'student',
   }));
@@ -17,23 +20,35 @@ export default function LibraryExplorer({ location, onBack, onReserve }) {
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const latestRequest = useRef(0);
+  const floors = FLOOR_MAPS[location.name] || [];
+  const [view, setView] = useState('day');
+  const views = [['day', 'Day schedule'], ...(floors.length ? [['map', 'Floor map']] : []), ['list', 'Room search']];
+  const showDay = view === 'day';
+  const showMap = floors.length > 0 && view === 'map';
+  const showList = !showDay && !showMap;
+
+  // the day schedule passes its own time window; the map and list use the searched one
+  function reserve(room, win = window) {
+    onReserve(room, win, {
+      ...filters,
+      location: String(location.id),
+      type: 'student',
+    });
+  }
 
   function update(field, value) {
     setFilters((prev) => ({ ...prev, [field]: value }));
-    setSearched(false);
-    setRooms([]);
-    setWindow(null);
   }
 
-  async function findRooms(event) {
-    event.preventDefault();
+  // Old results stay on screen while a new search runs; a slower, older
+  // response is ignored so it can't overwrite a newer one.
+  async function findRooms(query) {
+    const request = ++latestRequest.current;
     setLoading(true);
     setError('');
-    setRooms([]);
-    setSearched(false);
 
     try {
-      const query = { ...filters, location: String(location.id) };
       const selectedWindow = searchWindow(query);
       const data = await rpc('get_available_rooms', {
         p_location_id: Number(location.id),
@@ -42,21 +57,35 @@ export default function LibraryExplorer({ location, onBack, onReserve }) {
         p_group_size: Number(query.people),
         p_booking_type: 'student',
       });
+      if (request !== latestRequest.current) return;
       setWindow(selectedWindow);
       setRooms(data || []);
       setSearched(true);
     } catch (err) {
+      if (request !== latestRequest.current) return;
       setError(err.message || 'Unable to load rooms. Please try again.');
+      setRooms([]);
+      setSearched(false);
     } finally {
-      setLoading(false);
+      if (request === latestRequest.current) setLoading(false);
     }
   }
+
+  // check availability when the page opens and shortly after any filter changes
+  useEffect(() => {
+    const timer = setTimeout(() => findRooms(filters), 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, location.id, refreshKey]);
 
   return (
     <section className="library-explorer section" id="library-explorer" aria-labelledby="explorer-title">
       <div className="explorer-topline">
         <button className="explorer-back" type="button" onClick={onBack}>← All libraries</button>
-        <span>STUDY SPACE / LIBRARY EXPLORER</span>
+        <div className="explorer-topline-right">
+          <span>STUDY SPACE / LIBRARY EXPLORER</span>
+          <button className="explorer-manage" type="button" onClick={onManage}>My booking ↗</button>
+        </div>
       </div>
 
       <div className="explorer-heading">
@@ -68,7 +97,10 @@ export default function LibraryExplorer({ location, onBack, onReserve }) {
         <div className="explorer-mark" aria-hidden="true">✳</div>
       </div>
 
-      <form className="explorer-filters" onSubmit={findRooms}>
+      <form className="explorer-filters" onSubmit={(event) => {
+        event.preventDefault();
+        findRooms(filters);
+      }}>
         <label>
           <span>Date</span>
           <input type="date" required value={filters.date} min={dateKey()}
@@ -100,25 +132,38 @@ export default function LibraryExplorer({ location, onBack, onReserve }) {
     </form>
 
     <div className="explorer-results">
-      {error && (
+      <ViewTabs views={views} value={view} onChange={setView} />
+
+      {showDay && (
+        <DaySchedule key={filters.date + filters.time} locationId={location.id} date={filters.date}
+          startTime={filters.time} people={filters.people}
+          type="student" duration={filters.duration} refreshKey={refreshKey} onReserve={reserve} />
+      )}
+
+      {!showDay && error && (
         <p role="alert" className="explorer-error">
           {error}
         </p>
       )}
 
-      {!searched && !loading && !error && (
+      {showMap && (
+        <FloorMaps key={location.name} floors={floors} rooms={searched ? rooms : null}
+          window={window} loading={loading} onReserve={reserve} />
+      )}
+
+      {showList && !searched && !loading && !error && (
         <p className="explorer-empty">
           Choose your date and time to discover available study rooms.
         </p>
       )}
 
-      {loading && (
+      {showList && loading && !searched && (
         <p className="explorer-empty">
           Finding available rooms...
         </p>
       )}
 
-      {searched && (
+      {showList && searched && (
         <>
           <div className="explorer-results-heading">
             <h3>Available rooms</h3>
@@ -139,7 +184,7 @@ export default function LibraryExplorer({ location, onBack, onReserve }) {
                         <RoomIllustration variant={index} />
 
                         <span className="explorer-room-number">
-                            ROOM {String(index + 1).padStart(2, "0")}
+                            {/^\d/.test(roomNumber(room.name)) ? `ROOM ${roomNumber(room.name)}` : room.name}
                         </span>
                     </div>
 
@@ -157,13 +202,7 @@ export default function LibraryExplorer({ location, onBack, onReserve }) {
                     <button
                       type="button"
                       className="explorer-reserve"
-                      onClick={() =>
-                        onReserve(room, window, {
-                          ...filters,
-                          location: String(location.id),
-                          type: "student",
-                        })
-                      }
+                      onClick={() => reserve(room)}
                     >
                       Reserve this room ↗
                     </button>
