@@ -1,14 +1,14 @@
 /* ============================================================================
    LIBRARY EXPLORER
    A library-specific room search and results page.
-   Colors and typography match the Study Space cream/burgundy theme.
+   Colors and typography match the RuffRooms UGA red/black/white theme.
    Room availability and booking behavior live in LibraryExplorer.jsx, not CSS.
    ============================================================================ */
 
 /* Page shell: generous desktop spacing and at least one screen of height. */
 .library-explorer {
-  background: #fff9ef;
-  color: #432818;
+  background: #ffffff;
+  color: #111111;
   padding: clamp(28px, 5vw, 76px);
   min-height: 100svh;
   box-sizing: border-box;
@@ -22,13 +22,13 @@
   gap: 20px;
   font-size: 11px;
   letter-spacing: 0.14em;
-  color: #805f53;
+  color: #555555;
 }
 
 .explorer-back {
   background: none;
   border: 0;
-  color: #6f1d1b;
+  color: #ba0c2f;
   cursor: pointer;
   font: inherit;
   letter-spacing: 0;
@@ -48,7 +48,7 @@
 .explorer-eyebrow {
   font-size: 11px;
   letter-spacing: 0.14em;
-  color: #935e46;
+  color: #ba0c2f;
   font-weight: 700;
 }
 
@@ -63,19 +63,19 @@
 
 .explorer-heading p {
   max-width: 520px;
-  color: #795c50;
+  color: #555555;
   line-height: 1.6;
   margin: 0;
 }
 
 .explorer-dot {
-  color: #ae735e;
+  color: #ba0c2f;
 }
 
 .explorer-mark {
   font-size: clamp(80px, 12vw, 180px);
   line-height: 1;
-  color: #b98c70;
+  color: #aaaaaa;
 }
 
 /* Search filters: date, time, duration, people, and submit button. */
@@ -84,7 +84,7 @@
   grid-template-columns: 1.2fr 1fr 0.95fr 0.7fr auto;
   gap: 12px;
   align-items: end;
-  background: #f1e6d9;
+  background: #f0f0f0;
   border-radius: 18px;
   padding: 18px;
   margin-bottom: 36px;
@@ -96,7 +96,7 @@
   gap: 7px;
   font-size: 12px;
   font-weight: 600;
-  color: #6a4b40;
+  color: #555555;
 }
 
 .explorer-filters input,
@@ -105,9 +105,9 @@
   min-width: 0;
   box-sizing: border-box;
   height: 44px;
-  background: #fffaf3;
-  color: #432818;
-  border: 1px solid #decaba;
+  background: #ffffff;
+  color: #111111;
+  border: 1px solid #cccccc;
   border-radius: 8px;
   padding: 8px;
   font: inherit;
@@ -116,8 +116,8 @@
 /* Shared button baseline; the room reservation button gets extra styles below. */
 .explorer-search,
 .explorer-room-info button {
-  background: #6f1d1b;
-  color: #fff8ed;
+  background: #ba0c2f;
+  color: #ffffff;
   border: 0;
   border-radius: 8px;
   cursor: pointer;
@@ -158,11 +158,11 @@
 /* Supports either a <span> or <p> for the result count. */
 .explorer-results-heading > span {
   font-size: 13px;
-  color: #805f53;
+  color: #555555;
 }
 
 .explorer-results-heading p {
-  color: #8b786c;
+  color: #666666;
   font-size: 0.85rem;
 }
 
@@ -179,10 +179,12 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #fffcf7;
-  border: 1px solid #e5d9cb;
+  background: #ffffff;
+  border: 1px solid #dedede;
   border-radius: 22px;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .explorer-room-card:hover {
@@ -198,9 +200,9 @@
   min-height: 0;
   aspect-ratio: 5 / 3;
   overflow: hidden;
-  background: #e9d8bd;
-  color: #6f1d1b;
-  border-bottom: 1px solid #e0d3c4;
+  background: #eeeeee;
+  color: #ba0c2f;
+  border-bottom: 1px solid #d9d9d9;
 }
 
 .room-illustration {
@@ -226,8 +228,8 @@
   bottom: auto;
   padding: 7px 12px;
   border-radius: 100px;
-  background: #fffaf2;
-  color: #6f1d1b;
+  background: #ffffff;
+  color: #ba0c2f;
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -249,12 +251,12 @@
   font-size: clamp(1.25rem, 2vw, 1.65rem);
   line-height: 1.2;
   font-weight: 600;
-  color: #432818;
+  color: #111111;
 }
 
 .explorer-room-info p {
   margin: 0;
-  color: #806b60;
+  color: #555555;
   font-size: 0.95rem;
   line-height: 1.5;
 }
@@ -266,8 +268,8 @@
   padding: 15px 20px;
   border: none;
   border-radius: 12px;
-  background: #6f1d1b;
-  color: #fffaf2;
+  background: #ba0c2f;
+  color: #ffffff;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -275,26 +277,26 @@
 }
 
 .explorer-reserve:hover {
-  background: #501312;
+  background: #8d0822;
 }
 
 /* Empty-state message, errors, and optional note below results. */
 .explorer-empty {
-  border: 1px dashed #cbb9a7;
-  background: #f7eee2;
-  color: #74584b;
+  border: 1px dashed #bbbbbb;
+  background: #f5f5f5;
+  color: #555555;
   border-radius: 14px;
   padding: 36px 24px;
   text-align: center;
 }
 
 .explorer-error {
-  color: #9e1e1e;
+  color: #ba0c2f;
 }
 
 .explorer-footnote {
   font-size: 11px;
-  color: #987967;
+  color: #666666;
   margin: 20px 0 0;
 }
 
@@ -362,4 +364,19 @@
   .explorer-room-card:hover .room-illustration {
     transform: none;
   }
+}
+
+/* RuffRooms: accessible focus and hover states. */
+.explorer-back:hover {
+  color: #8d0822;
+}
+.explorer-search:hover:not(:disabled),
+.explorer-room-info button:hover:not(:disabled),
+.explorer-reserve:hover {
+  background: #8d0822;
+}
+.explorer-filters input:focus-visible,
+.explorer-filters select:focus-visible {
+  outline: 2px solid #ba0c2f;
+  outline-offset: 2px;
 }
