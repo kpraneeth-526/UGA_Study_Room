@@ -1,0 +1,198 @@
+/* ============================================================================
+   DAY SCHEDULE
+   Every room in a library as a row and the day as 30-minute columns.
+   Green = free (click to reserve), striped = booked, grey = past or unavailable.
+   Colors match the floor map legend and the cream/burgundy theme.
+   ============================================================================ */
+
+.day-schedule {
+  margin-top: 24px;
+  text-align: left;
+}
+
+/* Date heading with "Go to date" and previous/next day buttons. */
+.day-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.day-nav h3 {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 1.5rem;
+  color: #432818;
+}
+
+.day-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.day-nav-goto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #805f53;
+}
+
+.day-nav-goto input,
+.day-nav-buttons button {
+  border: 1px solid #ead9c6;
+  border-radius: 10px;
+  background: #fff;
+  color: #432818;
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 12px;
+}
+
+.day-nav-buttons button {
+  width: 40px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.day-nav-buttons button:hover:not(:disabled) {
+  background: #6f1d1b;
+  border-color: #6f1d1b;
+  color: #fff9ef;
+}
+
+.day-nav-buttons button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.day-schedule-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+.day-schedule-hint {
+  margin: 0;
+  font-size: 14px;
+  color: #432818;
+}
+
+.swatch.booked {
+  background: repeating-linear-gradient(135deg, #8a8378 0 3px, #cfc9bd 3px 7px);
+}
+
+.swatch.closed {
+  background: #e6e1d8;
+}
+
+/* The grid scrolls sideways on small screens; the room names stay put. */
+.day-grid-scroll {
+  position: relative;
+  margin-top: 12px;
+  overflow-x: auto;
+  border: 1px solid #ead9c6;
+  border-radius: 16px;
+  background: #fff;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* the old day stays visible (faded) while the next one loads */
+.day-grid-scroll.refreshing {
+  opacity: 0.6;
+}
+
+.day-grid {
+  display: grid;
+  grid-template-columns: minmax(150px, max-content) repeat(var(--slots), minmax(26px, 1fr));
+  min-width: max-content;
+}
+
+.day-grid-row {
+  display: contents;
+}
+
+.day-grid-corner,
+.day-grid-hour {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff9ef;
+  border-bottom: 1px solid #ead9c6;
+  font-size: 12px;
+  font-weight: 600;
+  color: #432818;
+  padding: 10px 8px;
+  white-space: nowrap;
+}
+
+.day-grid-hour {
+  grid-column: span 2;
+  border-left: 1px solid #ead9c6;
+}
+
+.day-grid-corner {
+  left: 0;
+  z-index: 3;
+}
+
+.day-grid-room {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fff;
+  border-bottom: 1px solid #f1e7da;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #432818;
+  white-space: nowrap;
+}
+
+.day-grid-room span {
+  font-weight: 400;
+  color: #805f53;
+}
+
+.day-cell {
+  height: 34px;
+  border: 0;
+  border-left: 1px solid #fff;
+  border-bottom: 1px solid #fff;
+  padding: 0;
+}
+
+.day-cell.free {
+  background: #2e9e5b;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.day-cell.free:hover,
+.day-cell.free:focus-visible,
+.day-cell.free.preview {
+  background: #14532d;
+  outline: none;
+}
+
+.day-cell.busy {
+  background: repeating-linear-gradient(135deg, #8a8378 0 3px, #cfc9bd 3px 7px);
+}
+
+.day-cell.past,
+.day-cell.closed {
+  background: #e6e1d8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .day-cell.free {
+    transition: none;
+  }
+}

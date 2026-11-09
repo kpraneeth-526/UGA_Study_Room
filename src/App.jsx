@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import LibraryGallery from "./LibraryGallery";
 import LibraryExplorer from "./LibraryExplorer";
 import { FloorMaps } from "./FloorMap";
+import DaySchedule, { ViewTabs } from "./DaySchedule";
 import { FLOOR_MAPS } from "./floorMaps";
 import { configured, getLocations, rpc, supabase } from "./supabase";
 import { demoLocations, demoRooms } from "./demo";
@@ -883,7 +884,9 @@ export default function App() {
     [manage, setManage] = useState(linkedBooking),
     [visible, setVisible] = useState(6),
     [notice, setNotice] = useState(""),
-    [finderView, setFinderView] = useState("map");
+    [finderView, setFinderView] = useState("day"),
+    // bumps after any booking change so open schedules reload
+    [bookingsVersion, setBookingsVersion] = useState(0);
 
   // Selected library for the detailed explorer; null shows the photo gallery.
   const [exploring, setExploring] = useState(null);
@@ -922,6 +925,12 @@ export default function App() {
       active = false;
     };
   }, []);
+  // Show results (the day schedule first) for the form's starting values as soon as
+  // the libraries load, instead of waiting for the first "Find a room" click.
+  useEffect(() => {
+    if (configured && !initLoading && form.location && !searched) search();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initLoading]);
   useEffect(() => {
     // Reveal elements when they first enter the viewport; clean up the observer on unmount.
     const obs = new IntersectionObserver(
@@ -985,6 +994,7 @@ export default function App() {
 
   // Clear old search results after a booking change so availability is rechecked.
   function changed() {
+    setBookingsVersion((v) => v + 1);
     setResults([]);
     setSearched(null);
     setNotice(
@@ -1030,7 +1040,13 @@ export default function App() {
   );
   // Floor plans for the searched library; libraries without one only show room cards.
   const floors = (searched && FLOOR_MAPS[selectedLoc?.name]) || [];
+  const showDay = finderView === "day";
   const showMap = floors.length > 0 && finderView === "map";
+  const finderViews = [
+    ["day", "Day schedule"],
+    ...(floors.length ? [["map", "Floor map"]] : []),
+    ["list", "Room search"],
+  ];
   return (
     <>
       <a className="skip-link" href="#finder">
@@ -1311,29 +1327,26 @@ export default function App() {
                   Smallest fit first <Icon name="people" size={16} />
                 </span>
               </div>
-              {floors.length > 0 && (
-                <div
-                  className="explorer-view-toggle"
-                  role="group"
-                  aria-label="Find rooms by"
-                >
-                  <button
-                    type="button"
-                    aria-pressed={finderView === "map"}
-                    onClick={() => setFinderView("map")}
-                  >
-                    Floor map
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={finderView === "list"}
-                    onClick={() => setFinderView("list")}
-                  >
-                    Room search
-                  </button>
-                </div>
-              )}
-              {showMap ? (
+              <ViewTabs
+                views={finderViews}
+                value={finderView}
+                onChange={setFinderView}
+              />
+              {showDay ? (
+                <DaySchedule
+                  key={`${searched.search.location} ${searched.search.date} ${searched.search.time}`}
+                  locationId={searched.search.location}
+                  date={searched.search.date}
+                  startTime={searched.search.time}
+                  people={searched.search.people}
+                  type={searched.search.type}
+                  duration={searched.search.duration}
+                  refreshKey={bookingsVersion}
+                  onReserve={(room, win) =>
+                    setSelection({ room, window: win, search: searched.search })
+                  }
+                />
+              ) : showMap ? (
                 <FloorMaps
                   key={selectedLoc?.name}
                   floors={floors}
@@ -1402,7 +1415,7 @@ export default function App() {
                   ))}
                 </div>
               )}
-              {!showMap && results.length > visible && (
+              {!showDay && !showMap && results.length > visible && (
                 <button
                   className="button secondary load-more"
                   onClick={() => setVisible((v) => v + 6)}
@@ -1509,6 +1522,7 @@ export default function App() {
             location={exploring}
             onBack={() => setExploring(null)}
             onManage={() => setManage(true)}
+            refreshKey={bookingsVersion}
             onReserve={(room, window, search) => {
               setSelection({
                 room,

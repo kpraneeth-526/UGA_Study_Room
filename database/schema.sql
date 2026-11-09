@@ -953,3 +953,24 @@ after insert on bookings
 for each row
 when (new.status = 'active')
 execute function queue_booking_confirmation();
+
+-- ===== 16. Day schedule: every room in a library with its booked times =====
+-- Powers the website's "Day schedule" grid in one call instead of one call per room.
+-- Like get_room_schedule, it returns times only, never names or emails.
+create or replace function get_location_schedule(
+  p_location_id bigint, p_from timestamptz, p_to timestamptz)
+returns table (room_id bigint, name text, capacity int, students_only boolean, busy jsonb)
+language sql stable security definer set search_path = public as $$
+  select r.id, r.name, r.capacity, r.students_only,
+    coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'start', b.start_time, 'end', b.end_time, 'type', b.booking_type)
+             order by b.start_time)
+      from bookings b
+      where b.room_id = r.id and b.status = 'active'
+        and b.start_time < p_to and b.end_time > p_from
+    ), '[]'::jsonb)
+  from rooms r
+  where r.location_id = p_location_id
+  order by r.name;
+$$;

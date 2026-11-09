@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { rpc } from './supabase';
 import RoomIllustration from "./RoomIllustration";
 import { FloorMaps } from './FloorMap';
+import DaySchedule, { ViewTabs } from './DaySchedule';
 import { FLOOR_MAPS, roomNumber } from './floorMaps';
 import { dateKey, initialSearch, searchWindow, prettyTime } from './time';
 import './library-explorer.css';
 
 const DURATIONS = [15, 30, 45, 60, 75, 90, 105, 120];
 
-export default function LibraryExplorer({ location, onBack, onReserve, onManage }) {
+export default function LibraryExplorer({ location, onBack, onReserve, onManage, refreshKey }) {
   const [filters, setFilters] = useState(() => ({
     ...initialSearch(),
     location: String(location.id),
@@ -21,11 +22,15 @@ export default function LibraryExplorer({ location, onBack, onReserve, onManage 
   const [error, setError] = useState('');
   const latestRequest = useRef(0);
   const floors = FLOOR_MAPS[location.name] || [];
-  const [view, setView] = useState('map');
+  const [view, setView] = useState('day');
+  const views = [['day', 'Day schedule'], ...(floors.length ? [['map', 'Floor map']] : []), ['list', 'Room search']];
+  const showDay = view === 'day';
   const showMap = floors.length > 0 && view === 'map';
+  const showList = !showDay && !showMap;
 
-  function reserve(room) {
-    onReserve(room, window, {
+  // the day schedule passes its own time window; the map and list use the searched one
+  function reserve(room, win = window) {
+    onReserve(room, win, {
       ...filters,
       location: String(location.id),
       type: 'student',
@@ -71,7 +76,7 @@ export default function LibraryExplorer({ location, onBack, onReserve, onManage 
     const timer = setTimeout(() => findRooms(filters), 400);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, location.id]);
+  }, [filters, location.id, refreshKey]);
 
   return (
     <section className="library-explorer section" id="library-explorer" aria-labelledby="explorer-title">
@@ -127,14 +132,15 @@ export default function LibraryExplorer({ location, onBack, onReserve, onManage 
     </form>
 
     <div className="explorer-results">
-      {floors.length > 0 && (
-        <div className="explorer-view-toggle" role="group" aria-label="Find rooms by">
-          <button type="button" aria-pressed={view === 'map'} onClick={() => setView('map')}>Floor map</button>
-          <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>Room search</button>
-        </div>
+      <ViewTabs views={views} value={view} onChange={setView} />
+
+      {showDay && (
+        <DaySchedule key={filters.date + filters.time} locationId={location.id} date={filters.date}
+          startTime={filters.time} people={filters.people}
+          type="student" duration={filters.duration} refreshKey={refreshKey} onReserve={reserve} />
       )}
 
-      {error && (
+      {!showDay && error && (
         <p role="alert" className="explorer-error">
           {error}
         </p>
@@ -145,19 +151,19 @@ export default function LibraryExplorer({ location, onBack, onReserve, onManage 
           window={window} loading={loading} onReserve={reserve} />
       )}
 
-      {!showMap && !searched && !loading && !error && (
+      {showList && !searched && !loading && !error && (
         <p className="explorer-empty">
           Choose your date and time to discover available study rooms.
         </p>
       )}
 
-      {!showMap && loading && !searched && (
+      {showList && loading && !searched && (
         <p className="explorer-empty">
           Finding available rooms...
         </p>
       )}
 
-      {!showMap && searched && (
+      {showList && searched && (
         <>
           <div className="explorer-results-heading">
             <h3>Available rooms</h3>
