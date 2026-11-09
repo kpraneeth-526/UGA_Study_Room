@@ -1063,7 +1063,6 @@ export default function App() {
               </span>
             </div>
             <div className="visual-bottom">
-              <span>ROOM FOR YOUR NEXT CHAPTER</span>
               <span className="round-arrow">
                 <Icon name="up" />
               </span>
